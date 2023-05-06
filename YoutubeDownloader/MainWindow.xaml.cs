@@ -1,21 +1,10 @@
 ﻿using MediaToolkit;
 using MediaToolkit.Model;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Forms;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using VideoLibrary;
 
 namespace YoutubeDownloader
@@ -28,7 +17,7 @@ namespace YoutubeDownloader
         public MainWindow()
         {
             InitializeComponent();
-            DownloadDirectory.Text = System.IO.Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
+            DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
             Url.Text = "Link zum Youtube Video hier einfügen";
             Audio.IsChecked = true;
             Video.IsChecked = false;
@@ -62,41 +51,56 @@ namespace YoutubeDownloader
             Url.Text = string.Empty;
         }
 
-        private void Download_Click(object sender, RoutedEventArgs e)
+        private async Task<string> DownloadYoutubeVideo(string mediaToBeLoaded, string downloadDir)
         {
-            var source = DownloadDirectory.Text;
+           
             var youtube = YouTube.Default;
             string videoFullName;
             try
             {
-                var vid = youtube.GetVideo(Url.Text);
-                videoFullName = source + vid.FullName;
-                File.WriteAllBytes(videoFullName, vid.GetBytes());
+                var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded));
+                videoFullName = downloadDir + vid.FullName;
+                await Task.Run(() => File.WriteAllBytes(videoFullName, vid.GetBytes()));
             }
 
-            catch(ArgumentException)
+            catch (ArgumentException)
             {
                 System.Windows.MessageBox.Show("Ungültiger Link! Gebe einen Link zu einem Youtube Video ein!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return "";
             }
             catch (VideoLibrary.Exceptions.UnavailableStreamException)
             {
                 System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                return "";
             }
+            return videoFullName;
+        }
 
+        private async Task ConvertToAudio(string filename)
+        {
+            var inputFile = new MediaFile { Filename = filename };
+            //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
+            var outputFile = new MediaFile { Filename = $"{filename.Substring(0, filename.Length - 4)}.mp3" };
+
+            using (var engine = new Engine())
+            {
+                await Task.Run(() => engine.GetMetadata(inputFile));
+                await Task.Run(() => engine.Convert(inputFile, outputFile));
+            }
+            await Task.Run(() => File.Delete(filename));
+        }
+        private async void Download_Click(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Debug.WriteLine("Download of video just started");
+            string mediaToBeLoaded = Url.Text;
+            var source = DownloadDirectory.Text;
+            string videoName = await DownloadYoutubeVideo(mediaToBeLoaded, source);
+            System.Diagnostics.Debug.WriteLine("Finished download!");
+            // Convert the file to audio and delete the original file 
             if ((bool)Audio.IsChecked)
             {
-                var inputFile = new MediaFile { Filename = videoFullName };
-                //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
-                var outputFile = new MediaFile { Filename = $"{videoFullName.Substring(0, videoFullName.Length - 4)}.mp3" };
-
-                using (var engine = new Engine())
-                {
-                    engine.GetMetadata(inputFile);
-                    engine.Convert(inputFile, outputFile);
-                }
-                File.Delete(videoFullName);
+                System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
+                await ConvertToAudio(videoName);
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);

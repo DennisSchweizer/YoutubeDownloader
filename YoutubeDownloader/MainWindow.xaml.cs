@@ -57,6 +57,11 @@ namespace YoutubeDownloader
             Video.IsChecked = false;
         }
 
+        private void ClearTextBox_Click(object sender, RoutedEventArgs e)
+        {
+            Url.Text = string.Empty;
+        }
+
         private void Download_Click(object sender, RoutedEventArgs e)
         {
             var source = DownloadDirectory.Text;

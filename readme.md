@@ -1,0 +1,1 @@
+This executable loads eihter videos or music from a provided link to a Youtube video. It needs some more improvements such as adding async methods and the possibility to add more than one link at a time.

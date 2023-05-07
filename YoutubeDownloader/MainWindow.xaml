@@ -5,17 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YoutubeDownloader"
         mc:Ignorable="d"
-        Title="Youtube Downloader" Height="150" Width="500" ResizeMode="CanMinimize">
+        Title="Youtube Downloader" Height="150" Width="634" ResizeMode="CanMinimize">
     <Grid Margin="0,0,5,0.5">
-        <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="Wrap" Text="Link zum Video hier einfügen" VerticalAlignment="Top" Width="278" MouseDoubleClick="ClearTextBox_Click"/>
-        <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="298,22,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="Download_Click"/>
-        <TextBlock HorizontalAlignment="Left" Margin="402,10,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
-        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="402,29,0,0" VerticalAlignment="Top"  />
-        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="402,49,0,0" VerticalAlignment="Top"/>
-        <Button Name="ResetApplication" Content="Reset" HorizontalAlignment="Left" Margin="402,77,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="ResetApplication_Click"/>
-        <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="278"/>
+        <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="Wrap" Text="Link zum Video hier einfügen" VerticalAlignment="Top"  Width="400" MouseDoubleClick="ClearTextBox_Click" TextAlignment="Justify" />
+        <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="442,22,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="Download_Click"/>
+        <TextBlock HorizontalAlignment="Left" Margin="543,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
+        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="543,32,0,0" VerticalAlignment="Top"  />
+        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="543,49,0,0" VerticalAlignment="Top"/>
+        <Button Name="ResetApplication" Content="Reset" HorizontalAlignment="Left" Margin="543,77,0,0" VerticalAlignment="Top" Width="60" Height="23" Click="ResetApplication_Click"/>
+        <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
         <TextBlock HorizontalAlignment="Left" Margin="15,53,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="19" Width="150                    "/>
-        <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="298,77,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="BrowseSaveDirectory_Click"/>
+        <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="442,77,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="BrowseSaveDirectory_Click"/>
 
     </Grid>
 </Window>

@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="Youtube Downloader" Height="150" Width="634" ResizeMode="CanMinimize">
     <Grid Margin="0,0,5,0.5">
-        <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="Wrap" Text="Link zum Video hier einfügen" VerticalAlignment="Top"  Width="400" MouseDoubleClick="ClearTextBox_Click" TextAlignment="Justify" />
+        <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="WrapWithOverflow" Text="Link zum Video hier einfügen"  VerticalAlignment="Top"  Width="400" MouseDoubleClick="ClearTextBox_Click" GotFocus="LinkGotFocus" TextAlignment="Justify" Foreground="#FFBFBFBF" />
         <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="442,22,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="Download_Click"/>
         <TextBlock HorizontalAlignment="Left" Margin="543,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
         <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="543,32,0,0" VerticalAlignment="Top"  />

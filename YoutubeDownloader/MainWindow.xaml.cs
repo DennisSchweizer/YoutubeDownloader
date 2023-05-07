@@ -5,6 +5,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Media;
 using VideoLibrary;
 
 namespace YoutubeDownloader
@@ -21,6 +22,18 @@ namespace YoutubeDownloader
             Url.Text = "Link zum Youtube Video hier einfügen";
             Audio.IsChecked = true;
             Video.IsChecked = false;
+        }
+
+        private void LinkGotFocus(object sender, RoutedEventArgs e)
+        {
+            Url.Foreground = Brushes.Black;
+            if (Url.Text.Equals("Link zum Youtube Video hier einfügen"))
+            {
+                Url.Text = string.Empty;
+            }
+
+            // ToDo: Add validation of content
+            Url.Text = System.Windows.Clipboard.GetText();
         }
 
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
@@ -41,7 +54,7 @@ namespace YoutubeDownloader
         {
             //ToDo: Set all GUI-Elements to default values
             Url.Text = string.Empty;
-            DownloadDirectory.Text = System.IO.Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
+            DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
             Audio.IsChecked = true;
             Video.IsChecked = false;
         }

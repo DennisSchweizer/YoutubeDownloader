@@ -2,7 +2,8 @@ This executable loads eihter videos or music from a provided link to a Youtube v
 
 ToDos:
 - [x] make download asynchronuous
-- [] paste link from Clipboard if clicked on textbox
+- [X] paste link from Clipboard if clicked on textbox
+- [] validate content of textbox
 - [x] disable buttons while a download is already running
 - [] implement waiting dialogue / Progress bar
 - [] add support for multiple downloads from a textfile / textfield

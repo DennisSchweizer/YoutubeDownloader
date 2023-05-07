@@ -8,7 +8,7 @@
         Title="Youtube Downloader" Height="150" Width="500" ResizeMode="CanMinimize">
     <Grid Margin="0,0,5,0.5">
         <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="Wrap" Text="Link zum Video hier einfügen" VerticalAlignment="Top" Width="278" MouseDoubleClick="ClearTextBox_Click"/>
-        <Button Name ="Download" Content="Download" HorizontalAlignment="Left" Margin="298,22,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="Download_Click"/>
+        <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="298,22,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="Download_Click"/>
         <TextBlock HorizontalAlignment="Left" Margin="402,10,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
         <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="402,29,0,0" VerticalAlignment="Top"  />
         <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="402,49,0,0" VerticalAlignment="Top"/>

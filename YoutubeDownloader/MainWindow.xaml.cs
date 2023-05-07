@@ -53,7 +53,13 @@ namespace YoutubeDownloader
 
         private async Task<string> DownloadYoutubeVideo(string mediaToBeLoaded, string downloadDir)
         {
-           
+            //Disable all Buttons before download active
+            DownloadBtn.IsEnabled = false;
+            ResetApplication.IsEnabled = false;
+            Audio.IsEnabled = false;
+            Video.IsEnabled = false;
+            BrowseSaveDirectory.IsEnabled = false;
+
             var youtube = YouTube.Default;
             string videoFullName;
             try
@@ -72,6 +78,15 @@ namespace YoutubeDownloader
             {
                 System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 return "";
+            }
+
+            finally
+            {
+                DownloadBtn.IsEnabled = true;
+                ResetApplication.IsEnabled = true;
+                Audio.IsEnabled = true;
+                Video.IsEnabled = true;
+                BrowseSaveDirectory.IsEnabled = true;
             }
             return videoFullName;
         }

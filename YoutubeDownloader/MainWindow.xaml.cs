@@ -74,7 +74,7 @@ namespace YoutubeDownloader
             BrowseSaveDirectory.IsEnabled = false;
 
             var youtube = YouTube.Default;
-            string videoFullName;
+            string videoFullName = null;
             try
             {
                 var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded));
@@ -85,12 +85,19 @@ namespace YoutubeDownloader
             catch (ArgumentException)
             {
                 System.Windows.MessageBox.Show("Ungültiger Link! Gebe einen Link zu einem Youtube Video ein!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return "";
+                
             }
-            catch (VideoLibrary.Exceptions.UnavailableStreamException)
+            catch (VideoLibrary.Exceptions.UnavailableStreamException ex)
             {
-                System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                return "";
+                if(ex.Message.Contains("Alter"))
+                {
+                    System.Windows.MessageBox.Show($"Die Altersbeschränkung kann mit dem Youtube Downloader NOCH nicht umgangen werden. {Environment.NewLine} {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+               
             }
 
             finally
@@ -101,7 +108,7 @@ namespace YoutubeDownloader
                 Video.IsEnabled = true;
                 BrowseSaveDirectory.IsEnabled = true;
             }
-            return videoFullName;
+            return videoFullName != null ? videoFullName : null;
         }
 
         private async Task ConvertToAudio(string filename)
@@ -123,6 +130,10 @@ namespace YoutubeDownloader
             string mediaToBeLoaded = Url.Text;
             var source = DownloadDirectory.Text;
             string videoName = await DownloadYoutubeVideo(mediaToBeLoaded, source);
+            if (videoName == null)
+            {
+                return;
+            }
             System.Diagnostics.Debug.WriteLine("Finished download!");
             // Convert the file to audio and delete the original file 
             if ((bool)Audio.IsChecked)

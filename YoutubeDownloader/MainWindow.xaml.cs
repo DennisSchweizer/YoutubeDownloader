@@ -19,7 +19,7 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
-            Url.Text = "Link zum Youtube Video hier einfügen";
+            Url.Text = "Link zum Youtube Video hier per Linksklick einfügen";
             Audio.IsChecked = true;
             Video.IsChecked = false;
         }
@@ -27,7 +27,7 @@ namespace YoutubeDownloader
         private void LinkGotFocus(object sender, RoutedEventArgs e)
         {
             Url.Foreground = Brushes.Black;
-            if (Url.Text.Equals("Link zum Youtube Video hier einfügen"))
+            if (Url.Text.Equals("Link zum Youtube Video hier per Linksklick einfügen"))
             {
                 Url.Text = string.Empty;
             }
@@ -36,9 +36,10 @@ namespace YoutubeDownloader
             Url.Text = System.Windows.Clipboard.GetText();
         }
 
+
+        #region Click events
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
         {
-            //ToDo: Implement system dialog where to set the path -> Code from Stackoverflow
             using (var fbd = new FolderBrowserDialog())
             {
                 DialogResult result = fbd.ShowDialog();
@@ -52,19 +53,18 @@ namespace YoutubeDownloader
 
         private void ResetApplication_Click(object sender, RoutedEventArgs e)
         {
-            //ToDo: Set all GUI-Elements to default values
-            Url.Text = string.Empty;
+            //Set all GUI-Elements to default values
+            Url.Text = "Link zum Youtube Video hier per Linksklick einfügen";
+            Url.Foreground = Brushes.Gray;
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
             Audio.IsChecked = true;
             Video.IsChecked = false;
         }
+        #endregion
 
-        private void ClearTextBox_Click(object sender, RoutedEventArgs e)
-        {
-            Url.Text = string.Empty;
-        }
 
-        private async Task<string> DownloadYoutubeVideo(string mediaToBeLoaded, string downloadDir)
+        #region Async methods
+        private async Task<string> DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir)
         {
             //Disable all Buttons before download active
             DownloadBtn.IsEnabled = false;
@@ -89,7 +89,7 @@ namespace YoutubeDownloader
             }
             catch (VideoLibrary.Exceptions.UnavailableStreamException ex)
             {
-                if(ex.Message.Contains("Alter"))
+                if (ex.Message.Contains("Alter"))
                 {
                     System.Windows.MessageBox.Show($"Die Altersbeschränkung kann mit dem Youtube Downloader NOCH nicht umgangen werden. {Environment.NewLine} {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -102,16 +102,17 @@ namespace YoutubeDownloader
 
             finally
             {
+                //Enable all controls after download
                 DownloadBtn.IsEnabled = true;
                 ResetApplication.IsEnabled = true;
                 Audio.IsEnabled = true;
                 Video.IsEnabled = true;
                 BrowseSaveDirectory.IsEnabled = true;
             }
-            return videoFullName != null ? videoFullName : null;
+            return videoFullName ?? null;
         }
 
-        private async Task ConvertToAudio(string filename)
+        private async Task ConvertToAudioAsync(string filename)
         {
             var inputFile = new MediaFile { Filename = filename };
             //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
@@ -129,7 +130,7 @@ namespace YoutubeDownloader
             System.Diagnostics.Debug.WriteLine("Download of video just started");
             string mediaToBeLoaded = Url.Text;
             var source = DownloadDirectory.Text;
-            string videoName = await DownloadYoutubeVideo(mediaToBeLoaded, source);
+            string videoName = await DownloadYoutubeVideoAsync(mediaToBeLoaded, source);
             if (videoName == null)
             {
                 return;
@@ -139,10 +140,11 @@ namespace YoutubeDownloader
             if ((bool)Audio.IsChecked)
             {
                 System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                await ConvertToAudio(videoName);
+                await ConvertToAudioAsync(videoName);
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
         }
+        #endregion
     }
 }

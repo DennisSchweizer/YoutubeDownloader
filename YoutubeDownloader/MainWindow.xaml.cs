@@ -2,6 +2,7 @@
 using MediaToolkit.Model;
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
@@ -15,6 +16,7 @@ namespace YoutubeDownloader
     /// </summary>
     public partial class MainWindow : Window
     {
+        CancellationTokenSource cancellationToken = new CancellationTokenSource();
         public MainWindow()
         {
             InitializeComponent();
@@ -59,13 +61,21 @@ namespace YoutubeDownloader
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
             Audio.IsChecked = true;
             Video.IsChecked = false;
+            cancellationToken = new CancellationTokenSource();
         }
         #endregion
 
+        private void CancelDownload_Click(object sender, RoutedEventArgs e)
+        {
+            cancellationToken.Cancel();
+            CancelOperation.Background = Brushes.Red;
+        }
+
 
         #region Async methods
-        private async Task<string> DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir)
+        private async Task<string> DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
         {
+            
             //Disable all Buttons before download active
             DownloadBtn.IsEnabled = false;
             ResetApplication.IsEnabled = false;
@@ -77,9 +87,12 @@ namespace YoutubeDownloader
             string videoFullName = null;
             try
             {
+                cts.ThrowIfCancellationRequested();
                 var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded));
                 videoFullName = downloadDir + vid.FullName;
+                cts.ThrowIfCancellationRequested();
                 await Task.Run(() => File.WriteAllBytes(videoFullName, vid.GetBytes()));
+                cts.ThrowIfCancellationRequested();
             }
 
             catch (ArgumentException)
@@ -117,8 +130,9 @@ namespace YoutubeDownloader
             return videoFullName ?? null;
         }
 
-        private async Task ConvertToAudioAsync(string filename)
+        private async Task ConvertToAudioAsync(string filename, CancellationToken cts)
         {
+            cts.ThrowIfCancellationRequested();
             var inputFile = new MediaFile { Filename = filename };
             //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
             var outputFile = new MediaFile { Filename = $"{filename.Substring(0, filename.Length - 4)}.mp3" };
@@ -126,7 +140,9 @@ namespace YoutubeDownloader
             using (var engine = new Engine())
             {
                 await Task.Run(() => engine.GetMetadata(inputFile));
+                cts.ThrowIfCancellationRequested();
                 await Task.Run(() => engine.Convert(inputFile, outputFile));
+                cts.ThrowIfCancellationRequested();
             }
             await Task.Run(() => File.Delete(filename));
         }
@@ -135,7 +151,26 @@ namespace YoutubeDownloader
             System.Diagnostics.Debug.WriteLine("Download of video just started");
             string mediaToBeLoaded = Url.Text;
             var source = DownloadDirectory.Text;
-            string videoName = await DownloadYoutubeVideoAsync(mediaToBeLoaded, source);
+            string videoName = string.Empty;
+            try
+            {
+                videoName = await DownloadYoutubeVideoAsync(mediaToBeLoaded, source, cancellationToken.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                Url.Text = "Operation canceled!";
+                string videoFile = $"{source}\\{videoName}.mp4";
+                string audioFile = $"{source}\\{videoName}.mp3";
+                if (File.Exists(videoFile)){
+                    File.Delete(videoFile);
+                }
+                if (File.Exists(audioFile))
+                {
+                    File.Delete(audioFile);
+                }
+                return;
+            }
+            
             if (videoName == null)
             {
                 return;
@@ -145,7 +180,26 @@ namespace YoutubeDownloader
             if ((bool)Audio.IsChecked)
             {
                 System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                await ConvertToAudioAsync(videoName);
+                try
+                {
+                    await ConvertToAudioAsync(videoName, cancellationToken.Token);
+                }
+                catch(OperationCanceledException)
+                {
+                    Url.Text = "Operation canceled!";
+
+                    string videoFile = $"{source}\\{videoName}.mp4";
+                    string audioFile = $"{source}\\{videoName}.mp3";
+                    if (File.Exists(videoFile))
+                    {
+                        File.Delete(videoFile);
+                    }
+                    if (File.Exists(audioFile))
+                    {
+                        File.Delete(audioFile);
+                    }
+                    return;
+                }
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);

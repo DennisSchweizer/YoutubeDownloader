@@ -16,6 +16,7 @@
         <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
         <TextBlock HorizontalAlignment="Left" Margin="15,53,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="19" Width="150                    "/>
         <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="442,77,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="BrowseSaveDirectory_Click"/>
+        <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="442,51,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="76" Click="CancelDownload_Click" IsEnabled="True"/>
 
     </Grid>
 </Window>

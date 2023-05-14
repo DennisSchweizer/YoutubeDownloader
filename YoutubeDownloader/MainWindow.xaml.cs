@@ -87,6 +87,7 @@ namespace YoutubeDownloader
                 System.Windows.MessageBox.Show("Ungültiger Link! Gebe einen Link zu einem Youtube Video ein!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 
             }
+
             catch (VideoLibrary.Exceptions.UnavailableStreamException ex)
             {
                 if (ex.Message.Contains("Alter"))
@@ -97,7 +98,11 @@ namespace YoutubeDownloader
                 {
                     System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
-               
+            }
+
+            catch (System.Net.Http.HttpRequestException)
+            {
+                System.Windows.MessageBox.Show("Die Verbindung zu Youtube konnte nicht hergestellt werden. Überprüfen Sie die Internetverbindung!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             finally

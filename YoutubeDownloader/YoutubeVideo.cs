@@ -10,6 +10,8 @@ namespace YoutubeDownloader
         public string VideoUrl { get; set; }
         public string DownloadDirectory { get; set; } = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
 
+        public string VideoTitle { get; set; }
+
         public YouTube YoutubeMediaContainer { get; set; }
 
         public string MediaExtension { get; set; } = ".mp3";

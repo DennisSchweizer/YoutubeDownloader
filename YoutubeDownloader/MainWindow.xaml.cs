@@ -17,6 +17,8 @@ namespace YoutubeDownloader
     public partial class MainWindow : Window
     {
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
+        string videoTitle = string.Empty;
+        bool pressed = false;
         public MainWindow()
         {
             InitializeComponent();
@@ -69,13 +71,18 @@ namespace YoutubeDownloader
         {
             cancellationToken.Cancel();
             CancelOperation.Background = Brushes.Red;
+            pressed = true;
         }
 
 
+        // ToDo for Download Async
+        // 1. Handle occuring exception that appears shortly after a successful / canceled download (403 forbidden?)
+        // 2. Clean up code (especially memory problems -> Dispose videoAsBytes after download)
+        // 3. Cancel helper task that is making cancel responsive -> for memoty
+
         #region Async methods
-        private async Task<string> DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
+        private async Task DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
         {
-            
             //Disable all Buttons before download active
             DownloadBtn.IsEnabled = false;
             ResetApplication.IsEnabled = false;
@@ -88,10 +95,23 @@ namespace YoutubeDownloader
             try
             {
                 cts.ThrowIfCancellationRequested();
-                var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded));
-                videoFullName = downloadDir + vid.FullName;
+                var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded), cts);
+                videoTitle = vid.FullName;
+                videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
-                await Task.Run(() => File.WriteAllBytes(videoFullName, vid.GetBytes()));
+                byte[] videoAsBytes = Array.Empty<byte>();
+
+                await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
+                {
+                    while (!pressed)
+                    {
+                        //nop
+                    }
+                }, cts));
+
+                //byte[] videoAsBytes = await Task.Run(() => vid.GetBytes(), cts); // the cirtical part of the application -> very slow and cts does not work with it
+                cts.ThrowIfCancellationRequested();
+                await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
                 cts.ThrowIfCancellationRequested();
             }
 
@@ -127,7 +147,6 @@ namespace YoutubeDownloader
                 Video.IsEnabled = true;
                 BrowseSaveDirectory.IsEnabled = true;
             }
-            return videoFullName ?? null;
         }
 
         private async Task ConvertToAudioAsync(string filename, CancellationToken cts)
@@ -136,7 +155,7 @@ namespace YoutubeDownloader
             var inputFile = new MediaFile { Filename = filename };
             //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
             var outputFile = new MediaFile { Filename = $"{filename.Substring(0, filename.Length - 4)}.mp3" };
-
+            string downloadDir = DownloadDirectory.Text;
             using (var engine = new Engine())
             {
                 await Task.Run(() => engine.GetMetadata(inputFile));
@@ -146,35 +165,27 @@ namespace YoutubeDownloader
             }
             await Task.Run(() => File.Delete(filename));
         }
+
         private async void Download_Click(object sender, RoutedEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("Download of video just started");
             string mediaToBeLoaded = Url.Text;
             var source = DownloadDirectory.Text;
-            string videoName = string.Empty;
             try
             {
-                videoName = await DownloadYoutubeVideoAsync(mediaToBeLoaded, source, cancellationToken.Token);
+                await DownloadYoutubeVideoAsync(mediaToBeLoaded, source, cancellationToken.Token);
             }
             catch (OperationCanceledException)
             {
-                Url.Text = "Operation canceled!";
-                string videoFile = $"{source}\\{videoName}.mp4";
-                string audioFile = $"{source}\\{videoName}.mp3";
-                if (File.Exists(videoFile)){
-                    File.Delete(videoFile);
-                }
-                if (File.Exists(audioFile))
-                {
-                    File.Delete(audioFile);
-                }
+                HandleCanceledDownload(source,videoTitle);
                 return;
             }
             
-            if (videoName == null)
+            if (videoTitle == string.Empty)
             {
                 return;
             }
+
             System.Diagnostics.Debug.WriteLine("Finished download!");
             // Convert the file to audio and delete the original file 
             if ((bool)Audio.IsChecked)
@@ -182,28 +193,37 @@ namespace YoutubeDownloader
                 System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
                 try
                 {
-                    await ConvertToAudioAsync(videoName, cancellationToken.Token);
+                    await ConvertToAudioAsync(source + videoTitle, cancellationToken.Token);
                 }
                 catch(OperationCanceledException)
                 {
-                    Url.Text = "Operation canceled!";
-
-                    string videoFile = $"{source}\\{videoName}.mp4";
-                    string audioFile = $"{source}\\{videoName}.mp3";
-                    if (File.Exists(videoFile))
-                    {
-                        File.Delete(videoFile);
-                    }
-                    if (File.Exists(audioFile))
-                    {
-                        File.Delete(audioFile);
-                    }
+                    HandleCanceledDownload(source, videoTitle);
                     return;
                 }
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+            cancellationToken.Cancel();
+            cancellationToken = new CancellationTokenSource();
         }
         #endregion
+
+        private void HandleCanceledDownload(string source, string videoName)
+        {
+            pressed = false;
+            CancelOperation.Background = new SolidColorBrush(Color.FromRgb(0xDD,0xDD,0xDD));
+            string videoFile = $"{source}{videoName}";
+            string audioFile = $"{source}{videoName.Remove(videoName.Length - 1) + "3"}";
+            if (File.Exists(videoFile))
+            {
+                File.Delete(videoFile);
+            }
+            if (File.Exists(audioFile))
+            {
+                File.Delete(audioFile);
+            }
+            cancellationToken = new CancellationTokenSource();
+            System.Windows.MessageBox.Show("Der Download wurde abgebrochen!");
+        }
     }
 }

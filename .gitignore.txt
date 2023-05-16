@@ -1,4 +1,5 @@
-YoutubeDownloader/bin
-YoutubeDownloader/obj
-.vs/
-packages
+/YoutubeDownloader/bin/
+/YoutubeDownloader/obj/
+/YoutubeDownloader/packages.config
+/.vs/
+/packages/

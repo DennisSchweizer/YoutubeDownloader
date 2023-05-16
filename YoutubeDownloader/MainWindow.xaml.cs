@@ -19,6 +19,7 @@ namespace YoutubeDownloader
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
         string videoTitle = string.Empty;
         bool pressed = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -26,6 +27,7 @@ namespace YoutubeDownloader
             Url.Text = "Link zum Youtube Video hier per Linksklick einfügen";
             Audio.IsChecked = true;
             Video.IsChecked = false;
+            CancelOperation.IsEnabled = false;
         }
 
         private void LinkGotFocus(object sender, RoutedEventArgs e)
@@ -70,15 +72,10 @@ namespace YoutubeDownloader
         private void CancelDownload_Click(object sender, RoutedEventArgs e)
         {
             cancellationToken.Cancel();
-            CancelOperation.Background = Brushes.Red;
+            //CancelOperation.Background = Brushes.Red;
             pressed = true;
         }
 
-
-        // ToDo for Download Async
-        // 1. Handle occuring exception that appears shortly after a successful / canceled download (403 forbidden?)
-        // 2. Clean up code (especially memory problems -> Dispose videoAsBytes after download)
-        // 3. Cancel helper task that is making cancel responsive -> for memoty
 
         #region Async methods
         private async Task DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
@@ -89,9 +86,12 @@ namespace YoutubeDownloader
             Audio.IsEnabled = false;
             Video.IsEnabled = false;
             BrowseSaveDirectory.IsEnabled = false;
+            Url.IsEnabled = false;
+            CancelOperation.IsEnabled = true;
 
             var youtube = YouTube.Default;
             string videoFullName = null;
+            byte[] videoAsBytes = Array.Empty<byte>();
             try
             {
                 cts.ThrowIfCancellationRequested();
@@ -99,17 +99,16 @@ namespace YoutubeDownloader
                 videoTitle = vid.FullName;
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
-                byte[] videoAsBytes = Array.Empty<byte>();
+                
 
                 await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
                 {
                     while (!pressed)
                     {
-                        //nop
+                        //nop -> this loop is finished when the Cancel Button is pressed
                     }
                 }, cts));
 
-                //byte[] videoAsBytes = await Task.Run(() => vid.GetBytes(), cts); // the cirtical part of the application -> very slow and cts does not work with it
                 cts.ThrowIfCancellationRequested();
                 await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
                 cts.ThrowIfCancellationRequested();
@@ -133,9 +132,15 @@ namespace YoutubeDownloader
                 }
             }
 
-            catch (System.Net.Http.HttpRequestException)
+            catch (System.Net.Http.HttpRequestException ex)
             {
-                System.Windows.MessageBox.Show("Die Verbindung zu Youtube konnte nicht hergestellt werden. Überprüfen Sie die Internetverbindung!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (ex.Message.Contains("403")){
+                    System.Windows.MessageBox.Show("Youtube hat die Verbindung verweigert. Warten Sie kurz, bis die Verbindung wieder möglich ist!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Die Verbindung zu Youtube konnte nicht hergestellt werden. Überprüfen Sie die Internetverbindung!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
 
             finally
@@ -146,6 +151,10 @@ namespace YoutubeDownloader
                 Audio.IsEnabled = true;
                 Video.IsEnabled = true;
                 BrowseSaveDirectory.IsEnabled = true;
+                Url.IsEnabled = true;
+                CancelOperation.IsEnabled = false;
+                Array.Clear(videoAsBytes);
+                videoAsBytes = null;
             }
         }
 
@@ -180,8 +189,7 @@ namespace YoutubeDownloader
                 HandleCanceledDownload(source,videoTitle);
                 return;
             }
-            
-            if (videoTitle == string.Empty)
+            catch
             {
                 return;
             }
@@ -205,15 +213,18 @@ namespace YoutubeDownloader
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
         #endregion
 
         private void HandleCanceledDownload(string source, string videoName)
         {
             pressed = false;
-            CancelOperation.Background = new SolidColorBrush(Color.FromRgb(0xDD,0xDD,0xDD));
+            //CancelOperation.Background = new SolidColorBrush(Color.FromRgb(0xDD,0xDD,0xDD));
             string videoFile = $"{source}{videoName}";
             string audioFile = $"{source}{videoName.Remove(videoName.Length - 1) + "3"}";
+
             if (File.Exists(videoFile))
             {
                 File.Delete(videoFile);

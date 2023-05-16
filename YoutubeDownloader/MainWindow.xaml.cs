@@ -1,7 +1,9 @@
 ﻿using MediaToolkit;
 using MediaToolkit.Model;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
@@ -151,5 +153,29 @@ namespace YoutubeDownloader
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         #endregion
+
+        private async void DownloadList_Click(object sender, RoutedEventArgs e)
+        {
+            var source = DownloadDirectory.Text;
+            string VideoListAsString = VideoList.Text;
+            List<string> videosToBeDownloaded = VideoListAsString.Split(' ').ToList<string>();
+            foreach(string video in videosToBeDownloaded)
+            {
+                string videoName = await DownloadYoutubeVideoAsync(video, source);
+                if (videoName == null)
+                {
+                    return;
+                }
+                System.Diagnostics.Debug.WriteLine("Finished download!");
+                // Convert the file to audio and delete the original file 
+                if ((bool)Audio.IsChecked)
+                {
+                    System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
+                    await ConvertToAudioAsync(videoName);
+                }
+            }
+
+            System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
 }

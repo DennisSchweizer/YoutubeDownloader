@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YoutubeDownloader"
         mc:Ignorable="d"
-        Title="Youtube Downloader" Height="150" Width="634" ResizeMode="CanMinimize">
-    <Grid Margin="0,0,5,0.5">
+        Title="Youtube Downloader" Height="400" Width="908" ResizeMode="CanMinimize">
+    <Grid Margin="0,0,5,0">
         <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="WrapWithOverflow" Text="Link zum Video hier einfügen"  VerticalAlignment="Top"  Width="400"  GotFocus="LinkGotFocus" TextAlignment="Justify" Foreground="#FF808080" />
         <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="442,22,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="Download_Click"/>
         <TextBlock HorizontalAlignment="Left" Margin="543,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
@@ -16,6 +16,7 @@
         <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
         <TextBlock HorizontalAlignment="Left" Margin="15,53,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="19" Width="150                    "/>
         <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="442,77,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="BrowseSaveDirectory_Click"/>
-
+        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="622,13,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="245" Height="107" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True"/>
+        <Button Name="DownloadList" Content="Download List" Height="23" Margin="440,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="DownloadList_Click"/>
     </Grid>
 </Window>

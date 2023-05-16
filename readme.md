@@ -8,4 +8,4 @@ ToDos:
 - [] implement waiting dialogue / Progress bar
 - [] add support for multiple downloads from a textfile / textfield
 - [] improve behavior of link textbox e.g. display title of video
-- [] cancel downloads by clicking on button
+- [X] cancel downloads by clicking on button, NOT MERGED YET

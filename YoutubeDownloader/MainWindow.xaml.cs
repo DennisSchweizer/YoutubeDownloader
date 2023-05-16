@@ -234,7 +234,7 @@ namespace YoutubeDownloader
                 File.Delete(audioFile);
             }
             cancellationToken = new CancellationTokenSource();
-            System.Windows.MessageBox.Show("Der Download wurde abgebrochen!");
+            System.Windows.MessageBox.Show("Der Download wurde abgebrochen!","Abbruch!",MessageBoxButton.OK,MessageBoxImage.Exclamation);
         }
     }
 }

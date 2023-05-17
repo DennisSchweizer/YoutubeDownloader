@@ -10,7 +10,6 @@ using System.Windows.Forms;
 using System.Windows.Media;
 using VideoLibrary;
 using System.Text.RegularExpressions;
-
 namespace YoutubeDownloader
 {
     /// <summary>
@@ -161,11 +160,11 @@ namespace YoutubeDownloader
             string VideoListAsString = VideoList.Text;
             List<string> videosToBeDownloaded = VideoListAsString.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries).ToList<string>();
 
-            //ToDo: Improve validation by using regexp
-            //Regex youtubePattern = new Regex(@"^https?://www\.youtube\.com/(watch|shorts)/");
-            //List<string> videosToBeDownloaded = videosToBeDownloaded.Where(video => youtubePattern.IsMatch(video)).ToList();
 
-            videosToBeDownloaded = videosToBeDownloaded.Where(video => video.Contains("https://www.youtube.com/")).ToList();
+            //ToDo: Improve validation by using regexp even before Split method above
+            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts)");
+            videosToBeDownloaded = videosToBeDownloaded.Where(video => youtubePattern.IsMatch(video)).ToList();
+
             foreach(string video in videosToBeDownloaded)
             {
                 string videoName = await DownloadYoutubeVideoAsync(video, source);

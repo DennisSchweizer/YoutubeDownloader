@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
 using VideoLibrary;
+using System.Text.RegularExpressions;
 
 namespace YoutubeDownloader
 {
@@ -158,7 +159,13 @@ namespace YoutubeDownloader
         {
             var source = DownloadDirectory.Text;
             string VideoListAsString = VideoList.Text;
-            List<string> videosToBeDownloaded = VideoListAsString.Split(' ').ToList<string>();
+            List<string> videosToBeDownloaded = VideoListAsString.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries).ToList<string>();
+
+            //ToDo: Improve validation by using regexp
+            //Regex youtubePattern = new Regex(@"^https?://www\.youtube\.com/(watch|shorts)/");
+            //List<string> videosToBeDownloaded = videosToBeDownloaded.Where(video => youtubePattern.IsMatch(video)).ToList();
+
+            videosToBeDownloaded = videosToBeDownloaded.Where(video => video.Contains("https://www.youtube.com/")).ToList();
             foreach(string video in videosToBeDownloaded)
             {
                 string videoName = await DownloadYoutubeVideoAsync(video, source);

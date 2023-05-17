@@ -16,7 +16,7 @@
         <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
         <TextBlock HorizontalAlignment="Left" Margin="15,53,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="19" Width="150                    "/>
         <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="442,77,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="BrowseSaveDirectory_Click"/>
-        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="622,13,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="245" Height="107" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True"/>
+        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="622,13,0,0" TextWrapping="NoWrap" Text="" VerticalAlignment="Top" Width="245" Height="107" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True"/>
         <Button Name="DownloadList" Content="Download List" Height="23" Margin="440,50,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="DownloadList_Click"/>
     </Grid>
 </Window>

@@ -156,18 +156,16 @@ namespace YoutubeDownloader
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
-            var source = DownloadDirectory.Text;
-            string VideoListAsString = VideoList.Text;
-            List<string> videosToBeDownloaded = VideoListAsString.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries).ToList<string>();
 
+            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts).*");
+            MatchCollection matches =  youtubePattern.Matches(VideoList.Text);
 
-            //ToDo: Improve validation by using regexp even before Split method above
-            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts)");
-            videosToBeDownloaded = videosToBeDownloaded.Where(video => youtubePattern.IsMatch(video)).ToList();
+            //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list
+            List<string>  videosToBeDownloaded = matches.Cast<Match>().Select(item => item.Value).ToHashSet<string>().ToList();
 
             foreach(string video in videosToBeDownloaded)
             {
-                string videoName = await DownloadYoutubeVideoAsync(video, source);
+                string videoName = await DownloadYoutubeVideoAsync(video, DownloadDirectory.Text);
                 if (videoName == null)
                 {
                     return;

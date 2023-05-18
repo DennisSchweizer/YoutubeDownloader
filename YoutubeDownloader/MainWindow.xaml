@@ -5,18 +5,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:YoutubeDownloader"
         mc:Ignorable="d"
-        Title="Youtube Downloader" Height="150" Width="634" ResizeMode="CanMinimize">
-    <Grid Margin="0,0,5,0.5">
-        <TextBox Name="Url" HorizontalAlignment="Left" Height="23" Margin="15,22,0,0" TextWrapping="WrapWithOverflow" Text="Link zum Video hier einfügen"  VerticalAlignment="Top"  Width="400"  GotFocus="LinkGotFocus" TextAlignment="Justify" Foreground="#FF808080" />
-        <Button Name ="DownloadBtn" Content="Download" HorizontalAlignment="Left" Margin="442,22,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="Download_Click"/>
-        <TextBlock HorizontalAlignment="Left" Margin="543,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
-        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="543,32,0,0" VerticalAlignment="Top"  />
-        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="543,49,0,0" VerticalAlignment="Top"/>
-        <Button Name="ResetApplication" Content="Reset" HorizontalAlignment="Left" Margin="543,77,0,0" VerticalAlignment="Top" Width="60" Height="23" Click="ResetApplication_Click"/>
-        <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="23" Margin="15,77,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
-        <TextBlock HorizontalAlignment="Left" Margin="15,53,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="19" Width="150                    "/>
-        <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="442,77,0,0" VerticalAlignment="Top" Width="76" Height="23" Click="BrowseSaveDirectory_Click"/>
-        <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="442,51,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="76" Click="CancelDownload_Click" IsEnabled="True"/>
-
+        Title="Youtube Downloader" Height="234" Width="678" ResizeMode="CanMinimize">
+    <Grid Margin="0,0,5,-6">
+        <TextBlock HorizontalAlignment="Left" Margin="582,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
+        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="582,32,0,0" VerticalAlignment="Top"  />
+        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="582,49,0,0" VerticalAlignment="Top"/>
+        <Button Name="ResetApplication" Content="Reset" HorizontalAlignment="Left" Margin="582,77,0,0" VerticalAlignment="Top" Width="60" Height="23" Click="ResetApplication_Click"/>
+        <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="24" Margin="10,147,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
+        <TextBlock HorizontalAlignment="Left" Margin="10,123,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="20" Width="150                    "/>
+        <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="431,77,0,0" VerticalAlignment="Top" Width="118" Height="23" Click="BrowseSaveDirectory_Click"/>
+        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="10,23,0,0" TextWrapping="NoWrap"  VerticalAlignment="Top" Width="400" Height="77" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True" GotFocus="LinkGotFocus" Text="Links zu den Videos hier in je eine Zeile einfügen"/>
+        <Button Name="DownloadList" Content="Videos herunterladen" Height="23" Margin="431,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="DownloadList_Click"/>
+        <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="431,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="118" Click="CancelDownload_Click" IsEnabled="True"/>
     </Grid>
 </Window>

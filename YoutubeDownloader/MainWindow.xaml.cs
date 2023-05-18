@@ -21,21 +21,30 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
-            Url.Text = "Link zum Youtube Video hier per Linksklick einfügen";
+            VideoList.Text = "Links zu den Videos hier in je eine Zeile einfügen";
             Audio.IsChecked = true;
             Video.IsChecked = false;
         }
 
         private void LinkGotFocus(object sender, RoutedEventArgs e)
         {
-            Url.Foreground = Brushes.Black;
-            if (Url.Text.Equals("Link zum Youtube Video hier per Linksklick einfügen"))
+            VideoList.Foreground = Brushes.Black;
+            if (VideoList.Text.Equals("Links zu den Videos hier in je eine Zeile einfügen"))
             {
-                Url.Text = string.Empty;
+                VideoList.Text = string.Empty;
             }
 
-            // ToDo: Add validation of content
-            Url.Text = System.Windows.Clipboard.GetText();
+
+            List<string> videosToBeDownloaded = FilterForYoutubeLinks(System.Windows.Clipboard.GetText());
+
+            foreach (string videoLink in videosToBeDownloaded)
+            {
+                if(VideoList.Text == string.Empty)
+                    VideoList.Text = VideoList.Text.Insert(0, $"{videoLink}");
+                else
+                    VideoList.Text = VideoList.Text.Insert(0, $"{videoLink}");
+            }
+
         }
 
 
@@ -56,8 +65,8 @@ namespace YoutubeDownloader
         private void ResetApplication_Click(object sender, RoutedEventArgs e)
         {
             //Set all GUI-Elements to default values
-            Url.Text = "Link zum Youtube Video hier per Linksklick einfügen";
-            Url.Foreground = Brushes.Gray;
+            VideoList.Text = "Links zu den Videos hier in je eine Zeile einfügen";
+            VideoList.Foreground = Brushes.Gray;
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
             Audio.IsChecked = true;
             Video.IsChecked = false;
@@ -69,7 +78,7 @@ namespace YoutubeDownloader
         private async Task<string> DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir)
         {
             //Disable all Buttons before download active
-            DownloadBtn.IsEnabled = false;
+            DownloadList.IsEnabled = false;
             ResetApplication.IsEnabled = false;
             Audio.IsEnabled = false;
             Video.IsEnabled = false;
@@ -110,7 +119,7 @@ namespace YoutubeDownloader
             finally
             {
                 //Enable all controls after download
-                DownloadBtn.IsEnabled = true;
+                DownloadList.IsEnabled = true;
                 ResetApplication.IsEnabled = true;
                 Audio.IsEnabled = true;
                 Video.IsEnabled = true;
@@ -132,39 +141,16 @@ namespace YoutubeDownloader
             }
             await Task.Run(() => File.Delete(filename));
         }
-        private async void Download_Click(object sender, RoutedEventArgs e)
-        {
-            System.Diagnostics.Debug.WriteLine("Download of video just started");
-            string mediaToBeLoaded = Url.Text;
-            var source = DownloadDirectory.Text;
-            string videoName = await DownloadYoutubeVideoAsync(mediaToBeLoaded, source);
-            if (videoName == null)
-            {
-                return;
-            }
-            System.Diagnostics.Debug.WriteLine("Finished download!");
-            // Convert the file to audio and delete the original file 
-            if ((bool)Audio.IsChecked)
-            {
-                System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                await ConvertToAudioAsync(videoName);
-            }
 
-            System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
         #endregion
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
+            List<string> videosToBeDownloaded = VideoList.Text.Split('\r', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
 
-            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts).*");
-            MatchCollection matches =  youtubePattern.Matches(VideoList.Text);
-
-            //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list
-            List<string>  videosToBeDownloaded = matches.Cast<Match>().Select(item => item.Value).ToHashSet<string>().ToList();
-
-            foreach(string video in videosToBeDownloaded)
+            foreach (string video in videosToBeDownloaded)
             {
+                System.Diagnostics.Debug.WriteLine("Download of video just started");
                 string videoName = await DownloadYoutubeVideoAsync(video, DownloadDirectory.Text);
                 if (videoName == null)
                 {
@@ -180,6 +166,15 @@ namespace YoutubeDownloader
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private List<string> FilterForYoutubeLinks(string textToBeFiltered)
+        {
+            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts).*");
+            MatchCollection matches = youtubePattern.Matches(textToBeFiltered);
+
+            //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list
+            return matches.Cast<Match>().Select(item => item.Value).ToHashSet<string>().ToList();
         }
     }
 }

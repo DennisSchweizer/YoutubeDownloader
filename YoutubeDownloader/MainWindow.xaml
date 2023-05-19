@@ -8,15 +8,15 @@
         Title="Youtube Downloader" Height="289" Width="678" ResizeMode="CanMinimize">
     <Grid Margin="0,0,5,-6">
         <TextBlock HorizontalAlignment="Left" Margin="582,13,0,0" TextWrapping="Wrap" Text="MP3 / MP4" VerticalAlignment="Top" Height="19" Width="120"/>
-        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="582,32,0,0" VerticalAlignment="Top"  />
-        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="582,49,0,0" VerticalAlignment="Top"/>
+        <RadioButton Name="Audio" Content="Audio" HorizontalAlignment="Left" Margin="582,32,0,0" VerticalAlignment="Top" IsChecked="True" />
+        <RadioButton Name="Video" Content="Video" HorizontalAlignment="Left" Margin="582,49,0,0" VerticalAlignment="Top" IsChecked="False"/>
         <Button Name="ResetApplication" Content="Reset" HorizontalAlignment="Left" Margin="582,77,0,0" VerticalAlignment="Top" Width="60" Height="23" Click="ResetApplication_Click"/>
         <TextBlock Name="DownloadDirectory"  HorizontalAlignment="Left" Height="24" Margin="10,147,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="400"/>
         <TextBlock HorizontalAlignment="Left" Margin="10,123,0,0" TextWrapping="Wrap" Text="Speicherpfad:" VerticalAlignment="Top" Height="20" Width="150                    "/>
         <Button Name="BrowseSaveDirectory" Content="Durchsuchen" HorizontalAlignment="Left" Margin="431,77,0,0" VerticalAlignment="Top" Width="118" Height="23" Click="BrowseSaveDirectory_Click"/>
-        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="10,23,0,0" TextWrapping="NoWrap"  VerticalAlignment="Top" Width="400" Height="77" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True" GotFocus="LinkGotFocus" Text="Links zu den Videos hier in je eine Zeile einfügen"/>
+        <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="10,23,0,0" TextWrapping="NoWrap"  VerticalAlignment="Top" Width="400" Height="77" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True"  MouseDoubleClick="OnDoubleClick" Text="Links zu den Videos hier in je eine Zeile einfügen"/>
         <Button Name="DownloadList" Content="Videos herunterladen" Height="23" Margin="431,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="DownloadList_Click"/>
-        <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="431,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="118" Click="CancelDownload_Click" IsEnabled="True"/>
+        <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="431,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="118" Click="CancelDownload_Click" IsEnabled="False"/>
         <ProgressBar Name="DownloadProgress" HorizontalAlignment="Left" Height="20" Margin="10,176,0,0" VerticalAlignment="Top" Width="632"/>
         <TextBlock Name="CurrentDownload"  TextWrapping="Wrap" Text="Downloading File:" Margin="10,201,-10,-201" Visibility="Hidden"/>
         <ProgressBar Name="DownloadingIndicatorBar" HorizontalAlignment="Left" Height="20" Margin="10,217,0,0" VerticalAlignment="Top" Width="632" IsIndeterminate="True" Visibility="Hidden"/>

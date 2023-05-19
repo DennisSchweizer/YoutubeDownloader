@@ -5,7 +5,8 @@ ToDos:
 - [X] paste link from Clipboard if clicked on textbox
 - [x] validate content of textbox
 - [x] disable buttons while a download is already running
-- [] implement waiting dialogue / Progress bar
+- [x] implement Progress bar
+- [] implement indicator for currently running download
 - [x] add support for multiple downloads from a textfile / textfield
 - [] improve behavior of link textbox e.g. display title(s) of video
 - [X] cancel downloads by clicking on button

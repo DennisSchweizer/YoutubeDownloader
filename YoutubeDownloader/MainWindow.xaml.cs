@@ -110,19 +110,28 @@ namespace YoutubeDownloader
                 videoTitle = vid.FullName;
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
-                
-
-                await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
+                try
                 {
-                    while (!pressed)
+                    await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
                     {
-                        //nop -> this loop is finished when the Cancel Button is pressed
-                    }
-                }, cts));
+                        while (!pressed)
+                        {
+                            //nop -> this loop is finished when the Cancel Button is pressed
+                        }
+                    }, cts));
 
-                cts.ThrowIfCancellationRequested();
-                await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
-                cts.ThrowIfCancellationRequested();
+                    cts.ThrowIfCancellationRequested();
+                    await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
+                    cts.ThrowIfCancellationRequested();
+                }
+                catch (System.Net.Http.HttpRequestException ex)
+                {
+                    if (ex.Message.Contains("403") || ex.Message.Contains("303"))
+                    {
+                        System.Windows.MessageBox.Show("Youtube hat die Verbindung verweigert. Warten Sie kurz, bis die Verbindung wieder möglich ist!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                }
             }
 
             catch (ArgumentException)
@@ -145,7 +154,7 @@ namespace YoutubeDownloader
 
             catch (System.Net.Http.HttpRequestException ex)
             {
-                if (ex.Message.Contains("403")){
+                if (ex.Message.Contains("403") || ex.Message.Contains("303")){
                     System.Windows.MessageBox.Show("Youtube hat die Verbindung verweigert. Warten Sie kurz, bis die Verbindung wieder möglich ist!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 else
@@ -188,6 +197,8 @@ namespace YoutubeDownloader
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
+            uint downloadedVideos = 0;
+            uint percentageDownloadedVideos = 0;
             List<string> videosToBeDownloaded = VideoList.Text.Split('\r', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
 
             foreach (string video in videosToBeDownloaded)
@@ -222,6 +233,9 @@ namespace YoutubeDownloader
                         continue;
                     }
                 }
+                downloadedVideos++;
+                percentageDownloadedVideos = downloadedVideos * 100 / (uint) videosToBeDownloaded.Count;
+                DownloadProgress.Value = percentageDownloadedVideos;
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -229,6 +243,7 @@ namespace YoutubeDownloader
             cancellationToken = new CancellationTokenSource();
             GC.Collect();
             GC.WaitForPendingFinalizers();
+            DownloadProgress.Value = 0;
         }
         #endregion
 

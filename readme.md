@@ -6,7 +6,7 @@ ToDos:
 - [x] validate content of textbox
 - [x] disable buttons while a download is already running
 - [x] implement Progress bar
-- [] implement indicator for currently running download
+- [x] implement indicator for currently running download -> another progress bar (indeterminate)
 - [x] add support for multiple downloads from a textfile / textfield
 - [] improve behavior of link textbox e.g. display title(s) of video
 - [X] cancel downloads by clicking on button
@@ -14,3 +14,4 @@ ToDos:
 - [] improve validation of textbox with youtube links
 - [] improve behavior of canceled downloads e.g. deleting files, Messageboxes displaying video titles etc.
 - [] add more settings for output formats
+- [] handle exceptions which occur randomly if download is started

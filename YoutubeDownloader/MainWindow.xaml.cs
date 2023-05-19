@@ -202,17 +202,17 @@ namespace YoutubeDownloader
             uint percentageDownloadedVideos = 0;
             List<string> videosToBeDownloaded = VideoList.Text.Split('\r', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
             DownloadingIndicatorBar.Visibility = Visibility.Visible;
-            CurrentDonwload.Visibility = Visibility.Visible;
+            CurrentDownload.Visibility = Visibility.Visible;
 
             foreach (string video in videosToBeDownloaded)
             {
                 if (video.StartsWith("\n"))
                 {
-                    CurrentDonwload.Text += $" {video.Replace("\n",string.Empty)}";
+                    CurrentDownload.Text += $" {video.Replace("\n",string.Empty)}";
                 }
                 else
                 {
-                    CurrentDonwload.Text += $" {video}";
+                    CurrentDownload.Text += $" {video}";
                 }
                 System.Diagnostics.Debug.WriteLine("Download of video just started");
                 try 
@@ -247,7 +247,7 @@ namespace YoutubeDownloader
                 downloadedVideos++;
                 percentageDownloadedVideos = downloadedVideos * 100 / (uint) videosToBeDownloaded.Count;
                 DownloadProgress.Value = percentageDownloadedVideos;
-                CurrentDonwload.Text = CurrentDonwload.Text.Replace($" {video}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($" {video}", string.Empty);
                 if (VideoList.Text.Contains(video))
                 {
                     // ToDo Either delete the link or highlight it in some way
@@ -256,7 +256,7 @@ namespace YoutubeDownloader
                 }
             }
             DownloadingIndicatorBar.Visibility = Visibility.Hidden;
-            CurrentDonwload.Visibility = Visibility.Hidden;
+            CurrentDownload.Visibility = Visibility.Hidden;
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();

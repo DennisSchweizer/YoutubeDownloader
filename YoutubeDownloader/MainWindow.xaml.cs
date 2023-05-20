@@ -193,7 +193,6 @@ namespace YoutubeDownloader
             //List<string> videosToBeDownloaded = VideoList.Text.Split('\n', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
             videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
-            //MAYBE TRIM \n CHARACTERS
 
             foreach (string video in videosToBeDownloaded)
             {
@@ -237,6 +236,8 @@ namespace YoutubeDownloader
                 percentageDownloadedVideos = downloadedVideos * 100 / (uint) videosToBeDownloaded.Count;
                 DownloadProgress.Value = percentageDownloadedVideos;
 
+
+                // NEEDS SOME IMPROVEMENT UNTIL END OF METHOD
                 // Remove current download text from label 
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" {video.ReplaceLineEndings(string.Empty)}", string.Empty);
 
@@ -244,8 +245,11 @@ namespace YoutubeDownloader
                 {
                     // ToDo Either delete the link or highlight it in some way
                     //VideoList.Text = VideoList.Text.Replace(video, string.Empty);
-                    
                 }
+
+                // Remove unnecessary data from memory
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
             }
 
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -254,11 +258,6 @@ namespace YoutubeDownloader
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
-
-            // Remove unnecessary data from memory 
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            
         }
         #endregion
 

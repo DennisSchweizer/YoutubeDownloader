@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using System.Windows.Media;
 using VideoLibrary;
 using System.Text.RegularExpressions;
+using static MediaToolkit.Model.Metadata;
 
 namespace YoutubeDownloader
 {
@@ -252,9 +253,9 @@ namespace YoutubeDownloader
                 GC.WaitForPendingFinalizers();
             }
 
-            System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             EnableControlsAfterDownloading();
-
+            System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+            
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
@@ -281,8 +282,14 @@ namespace YoutubeDownloader
             //    File.Delete(audioFile);
             //}
 
+
+            // Remove unnecessary data from memory
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+
             cancellationToken = new CancellationTokenSource();
             System.Windows.MessageBox.Show("Der Download wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            CurrentDownload.Text = "Aktueller Download: ";
         }
 
         private List<string> FilterForYoutubeLinks(string textToBeFiltered)

@@ -11,7 +11,7 @@ ToDos:
 - [] improve behavior of link textbox e.g. display title(s) of video
 - [X] cancel downloads by clicking on button
 - [] improve controls -> scaling windows
-- [] improve validation of textbox with youtube links
-- [] improve behavior of canceled downloads e.g. deleting files, Messageboxes displaying video titles etc.
+- [x] improve validation of textbox with youtube links
+- [] improve behavior of canceled or 0 downloads e.g. deleting files, Messageboxes displaying video titles etc.
 - [] add more settings for output formats
 - [] handle exceptions which occur randomly if download is started

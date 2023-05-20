@@ -192,7 +192,7 @@ namespace YoutubeDownloader
 
             //List<string> videosToBeDownloaded = VideoList.Text.Split('\n', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
-            videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r')).ToList();
+            videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
             //MAYBE TRIM \n CHARACTERS
 
             foreach (string video in videosToBeDownloaded)

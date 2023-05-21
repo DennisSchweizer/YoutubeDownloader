@@ -11,7 +11,6 @@ using System.Windows.Forms;
 using System.Windows.Media;
 using VideoLibrary;
 using System.Text.RegularExpressions;
-using static MediaToolkit.Model.Metadata;
 
 namespace YoutubeDownloader
 {
@@ -85,6 +84,17 @@ namespace YoutubeDownloader
         #endregion
 
         #region Async methods
+
+        /// <summary>
+        /// ToDo in order to customize quality / resolution / bitrate and removing the necessity for MediaToolkit NuGet package
+        /// 1. Use GetAllVideosAsync() in order to check for available audio / video data
+        /// 2. Pick a suiting format, resolution, fps/bitrate by using the select/where function in order to get one single item of the list
+        /// 3. Maybe replace radiobuttons by checkboxes if you want to keep both audio and video files
+        /// </summary>
+        /// <param name="mediaToBeLoaded"></param>
+        /// <param name="downloadDir"></param>
+        /// <param name="cts"></param>
+        /// <returns></returns>
         private async Task DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
         {
             YouTube youtube = YouTube.Default;

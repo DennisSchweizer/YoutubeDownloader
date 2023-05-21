@@ -8,7 +8,7 @@ ToDos:
 - [x] implement Progress bar
 - [x] implement indicator for currently running download -> another progress bar (indeterminate)
 - [x] add support for multiple downloads from a textfile / textfield
-- [] improve behavior of link textbox e.g. display title(s) of video
+- [x] improve behavior of link textbox e.g. display title(s) of video -> now displaying video title while downloading
 - [X] cancel downloads by clicking on button
 - [] improve controls -> scaling windows
 - [x] improve validation of textbox with youtube links

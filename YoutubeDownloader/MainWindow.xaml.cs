@@ -87,9 +87,7 @@ namespace YoutubeDownloader
         #region Async methods
         private async Task DownloadYoutubeVideoAsync(string mediaToBeLoaded, string downloadDir, CancellationToken cts)
         {
-            // ?
             YouTube youtube = YouTube.Default;
-
             // Initialize helper variables
             string videoFullName = null;
             byte[] videoAsBytes = Array.Empty<byte>();
@@ -99,6 +97,7 @@ namespace YoutubeDownloader
                 cts.ThrowIfCancellationRequested();
                 var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded), cts);
                 videoTitle = vid.FullName;
+                CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
                 try
@@ -159,13 +158,13 @@ namespace YoutubeDownloader
                 // Clear videoAsBytes since it is not necessary anymore
                 Array.Clear(videoAsBytes);
                 videoAsBytes = null;
+                CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {videoTitle}", string.Empty);
             }
         }
 
-
-
         private async Task ConvertToAudioAsync(string filename, CancellationToken cts)
         {
+            CurrentDownload.Text += $" \nUmwandlen in Audiodatei: {videoTitle}";
             cts.ThrowIfCancellationRequested();
             MediaFile inputFile = new MediaFile { Filename = filename };
             //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
@@ -179,6 +178,7 @@ namespace YoutubeDownloader
                 cts.ThrowIfCancellationRequested();
             }
             await Task.Run(() => File.Delete(filename));
+            CurrentDownload.Text =CurrentDownload.Text.Replace($" \nUmwandlen in Audiodatei: {videoTitle}", string.Empty);
         }
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
@@ -189,10 +189,17 @@ namespace YoutubeDownloader
             uint downloadedVideos = 0;
             uint percentageDownloadedVideos = 0;
 
-            // In testing
 
-            //List<string> videosToBeDownloaded = VideoList.Text.Split('\n', (char)StringSplitOptions.RemoveEmptyEntries).Where(element => !string.IsNullOrEmpty(element)).ToHashSet<string>().ToList();
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
+            //VideoList.Text = string.Empty;
+
+            // In testing
+            // NEEDS SOME IMPROVEMENT: BREAKS IF A COMBINATION OF PASTED TEXT VIA CTRL+V AND DOUBLE CLICK IS USED - FOR NOW DEACTIVATED
+            //foreach (string video in videosToBeDownloaded)
+            //{
+            //    VideoList.Text += $"{video}";
+            //}
+
             videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
 
             foreach (string video in videosToBeDownloaded)

@@ -21,6 +21,7 @@ namespace YoutubeDownloader
         string videoTitle = string.Empty;
         bool cancelCurrentDownload = false;
 
+
         public MainWindow()
         {
             InitializeComponent();
@@ -106,6 +107,19 @@ namespace YoutubeDownloader
             {
                 cts.ThrowIfCancellationRequested();
                 var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded), cts);
+                IEnumerable<YouTubeVideo> allVids = await youtube.GetAllVideosAsync(mediaToBeLoaded);
+
+                if ((bool)Audio.IsChecked)
+                {
+                    allVids = allVids.Where((singleVideo) => singleVideo.AudioFormat == AudioFormat.Aac && singleVideo.AdaptiveKind == AdaptiveKind.Audio);
+                    vid = allVids.MaxBy((singleVid) => singleVid.AudioBitrate);
+                }
+                else
+                {
+                    allVids = allVids.Where((singleVideo) => singleVideo.Format == VideoFormat.Mp4 && singleVideo.AdaptiveKind == AdaptiveKind.Video && singleVideo.AudioFormat != AudioFormat.Unknown);
+                    vid = allVids.MaxBy((singleVid) => singleVid.Resolution);
+                }
+
                 videoTitle = vid.FullName;
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
@@ -234,20 +248,20 @@ namespace YoutubeDownloader
 
                 System.Diagnostics.Debug.WriteLine("Finished download!");
 
-                // Convert the file to audio and delete the original file  if mp3 is desired
-                if ((bool)Audio.IsChecked)
-                {
-                    System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                    try 
-                    {
-                        await ConvertToAudioAsync(DownloadDirectory.Text + videoTitle, cancellationToken.Token);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        HandleCanceledDownload(DownloadDirectory.Text, videoTitle);
-                        continue;
-                    }
-                }
+                // Convert the file to audio and delete the original file  if mp3 is desired - NOT NECESSARY ANYMORE SINCE AUDIO FILE CAN BE LOADED DIRECTLY
+                //if ((bool)Audio.IsChecked)
+                //{
+                //    System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
+                //    try 
+                //    {
+                //        await ConvertToAudioAsync(DownloadDirectory.Text + videoTitle, cancellationToken.Token);
+                //    }
+                //    catch (OperationCanceledException)
+                //    {
+                //        HandleCanceledDownload(DownloadDirectory.Text, videoTitle);
+                //        continue;
+                //    }
+                //}
 
                 // Refresh progress bar values
                 downloadedVideos++;
@@ -277,6 +291,8 @@ namespace YoutubeDownloader
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
         }
+
+
         #endregion
 
         private void HandleCanceledDownload(string source, string videoName)

@@ -1,5 +1,3 @@
-using MediaToolkit;
-using MediaToolkit.Model;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -194,24 +192,6 @@ namespace YoutubeDownloader
             }
         }
 
-        private async Task ConvertToAudioAsync(string filename, CancellationToken cts)
-        {
-            CurrentDownload.Text += $" \nUmwandlen in Audiodatei: {videoTitle}";
-            cts.ThrowIfCancellationRequested();
-            MediaFile inputFile = new MediaFile { Filename = filename };
-            //  -4 since length is 1 more than maximum index and additional 3 in order to cut mp3
-            MediaFile outputFile = new MediaFile { Filename = $"{filename.Substring(0, filename.Length - 4)}.mp3" };
-            string downloadDir = DownloadDirectory.Text;
-            using (Engine engine = new Engine())
-            {
-                await Task.Run(() => engine.GetMetadata(inputFile));
-                cts.ThrowIfCancellationRequested();
-                await Task.Run(() => engine.Convert(inputFile, outputFile));
-                cts.ThrowIfCancellationRequested();
-            }
-            await Task.Run(() => File.Delete(filename));
-            CurrentDownload.Text =CurrentDownload.Text.Replace($" \nUmwandlen in Audiodatei: {videoTitle}", string.Empty);
-        }
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
@@ -255,21 +235,6 @@ namespace YoutubeDownloader
                 }
 
                 System.Diagnostics.Debug.WriteLine("Finished download!");
-
-                // Convert the file to audio and delete the original file  if mp3 is desired - NOT NECESSARY ANYMORE SINCE AUDIO FILE CAN BE LOADED DIRECTLY
-                //if ((bool)Audio.IsChecked)
-                //{
-                //    System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                //    try
-                //    {
-                //        await ConvertToAudioAsync(DownloadDirectory.Text + videoTitle, cancellationToken.Token);
-                //    }
-                //    catch (OperationCanceledException)
-                //    {
-                //        HandleCanceledDownload(DownloadDirectory.Text, videoTitle);
-                //        continue;
-                //    }
-                //}
 
                 // Refresh progress bar values
                 downloadedVideos++;

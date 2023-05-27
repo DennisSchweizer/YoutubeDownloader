@@ -14,7 +14,6 @@
     <Resource Include="YoutubeLoader.ico.ico" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediaToolkit" Version="1.1.0.1" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.Win32.Primitives" Version="4.3.0" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />

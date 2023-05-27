@@ -13,6 +13,7 @@ ToDos:
 - [x] improve validation of textbox with youtube links
 - [] improve controls -> scaling windows
 - [] improve behavior of canceled or 0 downloads e.g. deleting files, Messageboxes displaying video titles etc.
-- [] add more settings for output formats (video resolution, audio bitrate etc.)
+- [x] add more settings for output formats (video resolution, audio bitrate etc.). The best bitrate for audio files will now be downloaded for videos difficult since most video files don't have audio
+- [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started
 - [] instead of canceling one download cancel all downloads

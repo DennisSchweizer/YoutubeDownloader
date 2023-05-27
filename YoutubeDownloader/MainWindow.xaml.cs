@@ -119,6 +119,7 @@ namespace YoutubeDownloader
                 }
 
                 videoTitle = vid.Title;
+
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
@@ -141,6 +142,9 @@ namespace YoutubeDownloader
                     {
                         videoFullName += ".mp4";
                     }
+
+                    // Remove invalid characters from Youtube video title -> filename
+                    videoFullName = string.Join('_',videoFullName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                     await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
                     cts.ThrowIfCancellationRequested();
                 }

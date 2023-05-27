@@ -120,7 +120,7 @@ namespace YoutubeDownloader
                     vid = allVids.MaxBy((singleVid) => singleVid.Resolution);
                 }
 
-                videoTitle = vid.FullName;
+                videoTitle = vid.Title;
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
@@ -135,6 +135,14 @@ namespace YoutubeDownloader
                     }, cts));
 
                     cts.ThrowIfCancellationRequested();
+                    if ((bool)Audio.IsChecked)
+                    {
+                        videoFullName += ".mp3";
+                    }
+                    else
+                    {
+                        videoFullName += ".mp4";
+                    }
                     await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
                     cts.ThrowIfCancellationRequested();
                 }
@@ -252,7 +260,7 @@ namespace YoutubeDownloader
                 //if ((bool)Audio.IsChecked)
                 //{
                 //    System.Diagnostics.Debug.WriteLine("Converting downloaded video to audio!");
-                //    try 
+                //    try
                 //    {
                 //        await ConvertToAudioAsync(DownloadDirectory.Text + videoTitle, cancellationToken.Token);
                 //    }

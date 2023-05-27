@@ -118,8 +118,8 @@ namespace YoutubeDownloader
                     vid = allVids.MaxBy((singleVid) => singleVid.Resolution);
                 }
 
-                videoTitle = vid.Title;
-
+                // Remove invalid characters from Youtube video title -> filename
+                videoTitle = string.Join('_', vid.Title.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
                 cts.ThrowIfCancellationRequested();
@@ -143,8 +143,7 @@ namespace YoutubeDownloader
                         videoFullName += ".mp4";
                     }
 
-                    // Remove invalid characters from Youtube video title -> filename
-                    videoFullName = string.Join('_',videoFullName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+
                     await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
                     cts.ThrowIfCancellationRequested();
                 }

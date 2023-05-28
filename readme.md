@@ -16,4 +16,4 @@ ToDos:
 - [x] add more settings for output formats (video resolution, audio bitrate etc.). The best bitrate for audio files will now be downloaded for videos difficult since most video files don't have audio
 - [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started
-- [] instead of canceling one download cancel all downloads
+- [x] instead of canceling one download cancel all downloads

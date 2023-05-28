@@ -202,10 +202,12 @@ namespace YoutubeDownloader
             }
         }
 
+        // ToDo: Add cts 
         private async Task DownloadVideo(YouTubeVideo vid, string videoFullName)
         {
             var client = new HttpClient();
             long? totalByte = 0;
+            DownloadingIndicatorBar.Value = 0;
             using (Stream output = File.OpenWrite(videoFullName))
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Head, vid.Uri))
@@ -224,7 +226,7 @@ namespace YoutubeDownloader
                         await output.WriteAsync(buffer, 0, read);
                         totalRead += read;
                         Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
-                        DownloadProgress.Value = totalRead / (double) totalByte * 100;
+                        DownloadingIndicatorBar.Value = totalRead / (double) totalByte * 100;
                     }
                 }
             }
@@ -354,6 +356,7 @@ namespace YoutubeDownloader
             VideoList.IsEnabled = false;
             CancelOperation.IsEnabled = true;
             DownloadingIndicatorBar.Visibility = Visibility.Visible;
+            DownloadProgress.Visibility = Visibility.Visible;
             CurrentDownload.Visibility = Visibility.Visible;
         }
 
@@ -368,6 +371,7 @@ namespace YoutubeDownloader
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
             DownloadingIndicatorBar.Visibility = Visibility.Hidden;
+            DownloadProgress.Visibility = Visibility.Hidden;
             CurrentDownload.Visibility = Visibility.Hidden;
             DownloadProgress.Value = 0;
         }

@@ -17,8 +17,8 @@
         <TextBox Name ="VideoList" HorizontalAlignment="Left" Margin="10,23,0,0" TextWrapping="NoWrap"  VerticalAlignment="Top" Width="400" Height="77" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Visible" ClipToBounds="True" AcceptsReturn="True"  MouseDoubleClick="OnDoubleClick" Text="Links zu den Videos hier in je eine Zeile einfügen"/>
         <Button Name="DownloadList" Content="Dateien herunterladen" Height="23" Margin="431,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Click="DownloadList_Click"/>
         <Button Name="CancelOperation" Content="Abbrechen" HorizontalAlignment="Left" Margin="431,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.253,0.139" Width="123" Click="CancelDownload_Click" IsEnabled="False"/>
-        <ProgressBar Name="DownloadProgress" HorizontalAlignment="Left" Height="20" Margin="10,176,0,0" VerticalAlignment="Top" Width="632"/>
+        <ProgressBar Name="DownloadProgress" HorizontalAlignment="Left" Height="20" Margin="10,247,0,0" VerticalAlignment="Top" Width="632" Visibility="Hidden"/>
         <TextBlock Name="CurrentDownload"  TextWrapping="Wrap" Text="Aktueller Download: " Margin="10,201,-10,-201" Visibility="Hidden"/>
-        <ProgressBar Name="DownloadingIndicatorBar" HorizontalAlignment="Left" Height="20" Margin="10,247,0,0" VerticalAlignment="Top" Width="632" IsIndeterminate="True" Visibility="Hidden"/>
+        <ProgressBar Name="DownloadingIndicatorBar" HorizontalAlignment="Left" Height="20" Margin="10,171,0,0" VerticalAlignment="Top" Width="632" IsIndeterminate="False" Visibility="Hidden"/>
     </Grid>
 </Window>

@@ -9,6 +9,8 @@ using System.Windows.Forms;
 using System.Windows.Media;
 using VideoLibrary;
 using System.Text.RegularExpressions;
+using System.Net.Http;
+using System.Diagnostics;
 
 namespace YoutubeDownloader
 {
@@ -112,6 +114,7 @@ namespace YoutubeDownloader
                     allVids = allVids.Where((singleVideo) => singleVideo.AudioFormat == AudioFormat.Aac && singleVideo.AdaptiveKind == AdaptiveKind.Audio);
                     vid = allVids.MaxBy((singleVid) => singleVid.AudioBitrate);
                 }
+
                 else
                 {
                     allVids = allVids.Where((singleVideo) => singleVideo.Format == VideoFormat.Mp4 && singleVideo.AdaptiveKind == AdaptiveKind.Video && singleVideo.AudioFormat != AudioFormat.Unknown);
@@ -120,12 +123,29 @@ namespace YoutubeDownloader
 
                 // Remove invalid characters from Youtube video title -> filename
                 videoTitle = string.Join('_', vid.Title.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+
+                if ((bool)Audio.IsChecked)
+                {
+                    videoTitle += ".mp3";
+                }
+
+                else
+                {
+                    videoTitle += ".mp4";
+                }
+
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
+
+
+
                 cts.ThrowIfCancellationRequested();
+
+
                 try
                 {
-                    await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
+                    //await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
+                    await Task.WhenAny(DownloadVideo(vid, videoFullName), Task.Run(() =>
                     {
                         while (!cancelCurrentDownload)
                         {
@@ -133,19 +153,6 @@ namespace YoutubeDownloader
                         }
                     }, cts));
 
-                    cts.ThrowIfCancellationRequested();
-                    if ((bool)Audio.IsChecked)
-                    {
-                        videoFullName += ".mp3";
-                    }
-                    else
-                    {
-                        videoFullName += ".mp4";
-                    }
-
-
-                    await File.WriteAllBytesAsync(videoFullName, videoAsBytes, cts);
-                    cts.ThrowIfCancellationRequested();
                 }
                 catch (System.Net.Http.HttpRequestException ex)
                 {
@@ -195,6 +202,33 @@ namespace YoutubeDownloader
             }
         }
 
+        private async Task DownloadVideo(YouTubeVideo vid, string videoFullName)
+        {
+            var client = new HttpClient();
+            long? totalByte = 0;
+            using (Stream output = File.OpenWrite(videoFullName))
+            {
+                using (var request = new HttpRequestMessage(HttpMethod.Head, vid.Uri))
+                {
+                    totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).Result.Content.Headers.ContentLength;
+                }
+                using (var input = await client.GetStreamAsync(vid.Uri))
+                {
+                    byte[] buffer = new byte[16 * 1024];
+                    int read;
+                    int totalRead = 0;
+
+                    Debug.WriteLine("Download Started");
+                    while ((read = await input.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        await output.WriteAsync(buffer, 0, read);
+                        totalRead += read;
+                        Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
+                        DownloadProgress.Value = totalRead / (double) totalByte * 100;
+                    }
+                }
+            }
+        }
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
@@ -221,7 +255,7 @@ namespace YoutubeDownloader
             {
      
                 CurrentDownload.Text += $" {video.ReplaceLineEndings(string.Empty)}";
-                System.Diagnostics.Debug.WriteLine("Download of video just started");
+                Debug.WriteLine("Download of video just started");
 
                 try 
                 {
@@ -237,7 +271,7 @@ namespace YoutubeDownloader
                     continue;
                 }
 
-                System.Diagnostics.Debug.WriteLine("Finished download!");
+                Debug.WriteLine("Finished download!");
 
                 // Refresh progress bar values
                 downloadedVideos++;

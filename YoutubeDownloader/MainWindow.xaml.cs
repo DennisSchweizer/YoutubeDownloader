@@ -20,6 +20,7 @@ namespace YoutubeDownloader
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
         string videoTitle = string.Empty;
         bool cancelCurrentDownload = false;
+        bool cancelAllDownloads = false;
 
 
         public MainWindow()
@@ -28,6 +29,7 @@ namespace YoutubeDownloader
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
         }
 
+        #region Click events
         /// <summary>
         /// Used in order to paste the contents of the clipboard by double clicking on the textbox
         /// </summary>
@@ -52,7 +54,7 @@ namespace YoutubeDownloader
         }
 
 
-        #region Click events
+
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
         {
             using (var fbd = new FolderBrowserDialog())
@@ -137,24 +139,26 @@ namespace YoutubeDownloader
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
 
-
-
                 cts.ThrowIfCancellationRequested();
 
 
                 try
                 {
                     //await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
-                    await Task.WhenAny(DownloadVideo(vid, videoFullName), Task.Run(() =>
+                    await Task.WhenAny(DownloadVideo(vid, videoFullName, cts), Task.Run(() =>
                     {
-                        while (!cancelCurrentDownload)
+                        while (!cancelCurrentDownload && !cancelAllDownloads)
                         {
                             //nop -> this loop is finished when the Cancel Button is pressed
                         }
                     }, cts));
 
+                    if (cancelCurrentDownload || cancelAllDownloads)
+                    {
+                        throw new OperationCanceledException();
+                    }
                 }
-                catch (System.Net.Http.HttpRequestException ex)
+                catch (HttpRequestException ex)
                 {
                     if (ex.Message.Contains("403") || ex.Message.Contains("303"))
                     {
@@ -182,7 +186,7 @@ namespace YoutubeDownloader
                 }
             }
 
-            catch (System.Net.Http.HttpRequestException ex)
+            catch (HttpRequestException ex)
             {
                 if (ex.Message.Contains("403") || ex.Message.Contains("303")){
                     System.Windows.MessageBox.Show("Youtube hat die Verbindung verweigert. Warten Sie kurz, bis die Verbindung wieder möglich ist!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -197,36 +201,49 @@ namespace YoutubeDownloader
             {
                 // Clear videoAsBytes since it is not necessary anymore
                 Array.Clear(videoAsBytes);
+                DownloadingIndicatorBar.Value = 0;
                 videoAsBytes = null;
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {videoTitle}", string.Empty);
             }
         }
 
-        // ToDo: Add cts 
-        private async Task DownloadVideo(YouTubeVideo vid, string videoFullName)
+        private async Task DownloadVideo(YouTubeVideo vid, string videoFullName, CancellationToken cts)
         {
             var client = new HttpClient();
             long? totalByte = 0;
-            DownloadingIndicatorBar.Value = 0;
+
             using (Stream output = File.OpenWrite(videoFullName))
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Head, vid.Uri))
                 {
-                    totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).Result.Content.Headers.ContentLength;
+                    totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength;
                 }
-                using (var input = await client.GetStreamAsync(vid.Uri))
+
+                using (var input = await client.GetStreamAsync(vid.Uri, cts))
                 {
                     byte[] buffer = new byte[16 * 1024];
                     int read;
                     int totalRead = 0;
 
                     Debug.WriteLine("Download Started");
-                    while ((read = await input.ReadAsync(buffer, 0, buffer.Length)) > 0)
+
+
+                    while ((read = await input.ReadAsync(buffer, 0, buffer.Length, cts)) > 0)
                     {
-                        await output.WriteAsync(buffer, 0, read);
-                        totalRead += read;
-                        Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
-                        DownloadingIndicatorBar.Value = totalRead / (double) totalByte * 100;
+
+                        try
+                        {
+                            cts.ThrowIfCancellationRequested();
+                            await output.WriteAsync(buffer, 0, read, cts);
+                            totalRead += read;
+                            Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
+                            DownloadingIndicatorBar.Value = totalRead / (double)totalByte * 100;
+                        }
+
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
                     }
                 }
             }
@@ -244,12 +261,13 @@ namespace YoutubeDownloader
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
             //VideoList.Text = string.Empty;
 
-            // In testing
+            #region In testing
             // NEEDS SOME IMPROVEMENT: BREAKS IF A COMBINATION OF PASTED TEXT VIA CTRL+V AND DOUBLE CLICK IS USED - FOR NOW DEACTIVATED
             //foreach (string video in videosToBeDownloaded)
             //{
             //    VideoList.Text += $"{video}";
             //}
+            #endregion
 
             videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
 
@@ -262,24 +280,30 @@ namespace YoutubeDownloader
                 try 
                 {
                     await DownloadYoutubeVideoAsync(video, DownloadDirectory.Text, cancellationToken.Token);
-                }
+                } // After the exception in DownloadYoutubeVideoAsync the exception is not caught on this level. Instead this methods does not go to the next element in the list
                 catch (OperationCanceledException)
                 {
                     HandleCanceledDownload(DownloadDirectory.Text, videoTitle);
-                    continue;
+                    if (cancelCurrentDownload)
+                    {
+                        continue;
+                    }
+                    else if (cancelAllDownloads)
+                    {
+                        cancelAllDownloads = false;
+                        break;
+                    }
+                    
                 }
-                catch
-                {
-                    continue;
-                }
+
 
                 Debug.WriteLine("Finished download!");
 
-                // Refresh progress bar values
+                #region Refresh progress bar values
                 downloadedVideos++;
                 percentageDownloadedVideos = downloadedVideos * 100 / (uint) videosToBeDownloaded.Count;
                 DownloadProgress.Value = percentageDownloadedVideos;
-
+                #endregion
 
                 // NEEDS SOME IMPROVEMENT UNTIL END OF METHOD
                 // Remove current download text from label 
@@ -337,7 +361,8 @@ namespace YoutubeDownloader
             CurrentDownload.Text = "Aktueller Download: ";
         }
 
-        private List<string> FilterForYoutubeLinks(string textToBeFiltered)
+
+        private static List<string> FilterForYoutubeLinks(string textToBeFiltered)
         {
             Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts).*");
             MatchCollection matches = youtubePattern.Matches(textToBeFiltered);
@@ -346,6 +371,8 @@ namespace YoutubeDownloader
             return matches.Cast<Match>().Select(item => item.Value).ToHashSet<string>().ToList();
         }
 
+
+        #region ControllingGUIElementsBeforeAfterDownload
         private void DisableControlsWhileDownloading()
         {
             DownloadList.IsEnabled = false;
@@ -374,6 +401,13 @@ namespace YoutubeDownloader
             DownloadProgress.Visibility = Visibility.Hidden;
             CurrentDownload.Visibility = Visibility.Hidden;
             DownloadProgress.Value = 0;
+        }
+        #endregion
+
+        private void CancelAllDownloads_Click(object sender, RoutedEventArgs e)
+        {
+            cancellationToken.Cancel();
+            cancelAllDownloads = true;
         }
     }
 }

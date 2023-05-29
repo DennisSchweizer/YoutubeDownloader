@@ -11,6 +11,7 @@ using VideoLibrary;
 using System.Text.RegularExpressions;
 using System.Net.Http;
 using System.Diagnostics;
+using Microsoft.WindowsAPICodePack.Taskbar;
 
 namespace YoutubeDownloader
 {
@@ -21,12 +22,14 @@ namespace YoutubeDownloader
         string videoTitle = string.Empty;
         bool cancelCurrentDownload = false;
         bool cancelAllDownloads = false;
+        TaskbarManager taskbar = TaskbarManager.Instance;
 
 
         public MainWindow()
         {
             InitializeComponent();
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
+            
         }
 
         #region Click events
@@ -83,6 +86,7 @@ namespace YoutubeDownloader
         {
             cancellationToken.Cancel();
             cancelCurrentDownload = true;
+            taskbar.SetProgressState(TaskbarProgressBarState.Paused);
         }
         #endregion
 
@@ -202,6 +206,7 @@ namespace YoutubeDownloader
                 // Clear videoAsBytes since it is not necessary anymore
                 Array.Clear(videoAsBytes);
                 DownloadingIndicatorBar.Value = 0;
+                taskbar.SetProgressValue(0, 100);
                 videoAsBytes = null;
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {videoTitle}", string.Empty);
             }
@@ -238,6 +243,7 @@ namespace YoutubeDownloader
                             totalRead += read;
                             Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
                             DownloadingIndicatorBar.Value = totalRead / (double)totalByte * 100;
+                            taskbar.SetProgressValue(totalRead, (int)totalByte);
                         }
 
                         catch (OperationCanceledException)
@@ -251,6 +257,7 @@ namespace YoutubeDownloader
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
+            taskbar.SetProgressState(TaskbarProgressBarState.Normal);
             DisableControlsWhileDownloading();
 
             // Initialize variables for progress bar
@@ -321,6 +328,7 @@ namespace YoutubeDownloader
             }
 
             EnableControlsAfterDownloading();
+            taskbar.SetProgressState(TaskbarProgressBarState.Normal);
             System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
@@ -408,6 +416,9 @@ namespace YoutubeDownloader
         {
             cancellationToken.Cancel();
             cancelAllDownloads = true;
+            taskbar.SetProgressState(TaskbarProgressBarState.Error);
+            taskbar.SetProgressValue(100, 100);
+            
         }
     }
 }

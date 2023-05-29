@@ -17,3 +17,4 @@ ToDos:
 - [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started
 - [x] instead of canceling one download cancel all downloads
+- [x] implemented progress bar behavior in task bar

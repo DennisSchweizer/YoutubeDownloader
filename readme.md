@@ -12,9 +12,11 @@ ToDos:
 - [X] cancel downloads by clicking on button
 - [x] improve validation of textbox with youtube links
 - [] improve controls -> scaling windows
-- [] improve behavior of canceled or 0 downloads e.g. deleting files, Messageboxes displaying video titles etc.
+- [x] improve behavior of canceled or 0 downloads e.g. deleting files, Messageboxes displaying video titles etc.
 - [x] add more settings for output formats (video resolution, audio bitrate etc.). The best bitrate for audio files will now be downloaded for videos difficult since most video files don't have audio
-- [] try to merge best audio file with best video file
-- [] handle exceptions which occur randomly if download is started
 - [x] instead of canceling one download cancel all downloads
 - [x] implemented progress bar behavior in task bar
+- [] try to merge best audio file with best video file
+- [] handle exceptions which occur randomly if download is started
+- [] integrate faster custom youtube download client
+- [] improve behavior of download progress bar if downloads are canceled 

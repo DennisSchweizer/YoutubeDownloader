@@ -144,8 +144,8 @@ namespace YoutubeDownloader
 
                 if (File.Exists(downloadDir + videoTitle))
                 {
-                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoTitle} existiert bereits. Soll der Download fortgesetzt und die Datei überschrieben werden?","Datei existiert bereits!",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
-                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
+                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoTitle} existiert bereits. Soll der Download übersprungen werden?","Datei existiert bereits!",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.Yes)
                     {
                         cancellationToken.Cancel();
                     }
@@ -364,6 +364,8 @@ namespace YoutubeDownloader
             GC.WaitForPendingFinalizers();
 
             cancellationToken = new CancellationTokenSource();
+
+            // If this messagebox is not integrated the file stream cannot be deleted if the download is canceled
             System.Windows.MessageBox.Show($"Der Download der Datei {videoName} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
             CurrentDownload.Text = "Aktueller Download: ";
             DownloadProgress.Foreground = Brushes.Yellow;

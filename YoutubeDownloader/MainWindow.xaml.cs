@@ -87,6 +87,7 @@ namespace YoutubeDownloader
             cancellationToken.Cancel();
             cancelCurrentDownload = true;
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
+            DownloadProgress.Foreground = Brushes.Yellow;
         }
         #endregion
 
@@ -113,6 +114,7 @@ namespace YoutubeDownloader
             {
                 cts.ThrowIfCancellationRequested();
                 var vid = await Task.Run(() => youtube.GetVideo(mediaToBeLoaded), cts);
+
                 IEnumerable<YouTubeVideo> allVids = await youtube.GetAllVideosAsync(mediaToBeLoaded);
 
                 if ((bool)Audio.IsChecked)
@@ -140,15 +142,21 @@ namespace YoutubeDownloader
                     videoTitle += ".mp4";
                 }
 
+                if (File.Exists(downloadDir + videoTitle))
+                {
+                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoTitle} existiert bereits. Soll der Download fortgesetzt und die Datei überschrieben werden?","Datei existiert bereits!",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
+                    {
+                        cancellationToken.Cancel();
+                    }
+                }
+
+                cts.ThrowIfCancellationRequested();
                 CurrentDownload.Text += $" \nDateiname: {videoTitle}";
                 videoFullName = downloadDir + videoTitle;
 
-                cts.ThrowIfCancellationRequested();
-
-
                 try
                 {
-                    //await Task.WhenAny(Task.Run(() => videoAsBytes = vid.GetBytes(), cts), Task.Run(() =>
                     await Task.WhenAny(DownloadVideo(vid, videoFullName, cts), Task.Run(() =>
                     {
                         while (!cancelCurrentDownload && !cancelAllDownloads)
@@ -205,7 +213,7 @@ namespace YoutubeDownloader
             {
                 // Clear videoAsBytes since it is not necessary anymore
                 Array.Clear(videoAsBytes);
-                DownloadingIndicatorBar.Value = 0;
+                //DownloadingIndicatorBar.Value = 0;
                 taskbar.SetProgressValue(0, 100);
                 videoAsBytes = null;
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {videoTitle}", string.Empty);
@@ -235,7 +243,6 @@ namespace YoutubeDownloader
 
                     while ((read = await input.ReadAsync(buffer, 0, buffer.Length, cts)) > 0)
                     {
-
                         try
                         {
                             cts.ThrowIfCancellationRequested();
@@ -263,6 +270,9 @@ namespace YoutubeDownloader
             // Initialize variables for progress bar
             uint downloadedVideos = 0;
             uint percentageDownloadedVideos = 0;
+            DownloadingIndicatorBar.Foreground = Brushes.Green;
+            DownloadProgress.Foreground = Brushes.Green;
+            DownloadProgress.Value = 0;
 
 
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
@@ -290,17 +300,25 @@ namespace YoutubeDownloader
                 } // After the exception in DownloadYoutubeVideoAsync the exception is not caught on this level. Instead this methods does not go to the next element in the list
                 catch (OperationCanceledException)
                 {
-                    HandleCanceledDownload(DownloadDirectory.Text, videoTitle);
+                    HandleCanceledDownload(videoTitle);
                     if (cancelCurrentDownload)
                     {
+                        if (File.Exists(DownloadDirectory.Text + videoTitle))
+                        {
+                            File.Delete(DownloadDirectory.Text + videoTitle);
+                        }
+                        cancelCurrentDownload = false;
                         continue;
                     }
                     else if (cancelAllDownloads)
                     {
+                        if (File.Exists(DownloadDirectory.Text + videoTitle))
+                        {
+                            File.Delete(DownloadDirectory.Text + videoTitle);
+                        }
                         cancelAllDownloads = false;
                         break;
                     }
-                    
                 }
 
 
@@ -329,44 +347,26 @@ namespace YoutubeDownloader
 
             EnableControlsAfterDownloading();
             taskbar.SetProgressState(TaskbarProgressBarState.Normal);
-            System.Windows.MessageBox.Show("Download abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
+            System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
 
         #endregion
 
-        private void HandleCanceledDownload(string source, string videoName)
+        private void HandleCanceledDownload(string videoName)
         {
-            cancelCurrentDownload = false;
-
-
-            // Deactivated for now. It is unclear if this function makes sense
-
-            //string videoFile = $"{source}{videoName}";
-            //string audioFile = $"{source}{videoName.Remove(videoName.Length - 1) + "3"}";
-
-
-            //if (File.Exists(videoFile))
-            //{
-            //    File.Delete(videoFile);
-            //}
-            //if (File.Exists(audioFile))
-            //{
-            //    File.Delete(audioFile);
-            //}
-
-
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
             cancellationToken = new CancellationTokenSource();
-            System.Windows.MessageBox.Show("Der Download wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            System.Windows.MessageBox.Show($"Der Download der Datei {videoName} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
             CurrentDownload.Text = "Aktueller Download: ";
+            DownloadProgress.Foreground = Brushes.Yellow;
         }
 
 
@@ -393,6 +393,7 @@ namespace YoutubeDownloader
             DownloadingIndicatorBar.Visibility = Visibility.Visible;
             DownloadProgress.Visibility = Visibility.Visible;
             CurrentDownload.Visibility = Visibility.Visible;
+            CancelAll.IsEnabled = true;
         }
 
         private void EnableControlsAfterDownloading()
@@ -405,10 +406,11 @@ namespace YoutubeDownloader
             BrowseSaveDirectory.IsEnabled = true;
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
-            DownloadingIndicatorBar.Visibility = Visibility.Hidden;
-            DownloadProgress.Visibility = Visibility.Hidden;
+            //DownloadingIndicatorBar.Visibility = Visibility.Hidden;
+            //DownloadProgress.Visibility = Visibility.Hidden;
             CurrentDownload.Visibility = Visibility.Hidden;
-            DownloadProgress.Value = 0;
+            //DownloadProgress.Value = 0;
+            CancelAll.IsEnabled = false;
         }
         #endregion
 

@@ -287,7 +287,7 @@ namespace YoutubeDownloader
             #endregion
 
             videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
-
+            ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
             foreach (string video in videosToBeDownloaded)
             {
      
@@ -321,13 +321,16 @@ namespace YoutubeDownloader
                     }
                 }
 
-
-                Debug.WriteLine("Finished download!");
-
                 #region Refresh progress bar values
-                downloadedVideos++;
-                percentageDownloadedVideos = downloadedVideos * 100 / (uint) videosToBeDownloaded.Count;
-                DownloadProgress.Value = percentageDownloadedVideos;
+                finally
+                {
+                    Debug.WriteLine("Finished download!");
+                    downloadedVideos++;
+                    percentageDownloadedVideos = downloadedVideos * 100 / (uint)videosToBeDownloaded.Count;
+                    DownloadProgress.Value = percentageDownloadedVideos;
+                    ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
+                }
+
                 #endregion
 
                 // NEEDS SOME IMPROVEMENT UNTIL END OF METHOD
@@ -396,6 +399,7 @@ namespace YoutubeDownloader
             DownloadProgress.Visibility = Visibility.Visible;
             CurrentDownload.Visibility = Visibility.Visible;
             CancelAll.IsEnabled = true;
+            ProgressIndicator.Visibility = Visibility.Visible;
         }
 
         private void EnableControlsAfterDownloading()
@@ -413,6 +417,7 @@ namespace YoutubeDownloader
             CurrentDownload.Visibility = Visibility.Hidden;
             //DownloadProgress.Value = 0;
             CancelAll.IsEnabled = false;
+            ProgressIndicator.Visibility = Visibility.Hidden;
         }
         #endregion
 

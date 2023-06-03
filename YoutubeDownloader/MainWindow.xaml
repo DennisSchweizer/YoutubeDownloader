@@ -7,11 +7,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Youtube Downloader"
     Width="678"
-    Height="336"
+    Height="367"
     ResizeMode="CanMinimize"
     mc:Ignorable="d">
 
-    <Grid Margin="0,0,0,0">
+    <Grid Margin="0,0,5,-33">
         <TextBlock
             Width="120"
             Height="19"
@@ -105,13 +105,13 @@
             Name="DownloadProgress"
             Width="632"
             Height="20"
-            Margin="10,247,0,0"
+            Margin="10,279,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Visibility="Visible" />
         <TextBlock
             Name="CurrentDownload"
-            Margin="10,201,-10,-201"
+            Margin="10,201,-10,92"
             Text="Aktueller Download: "
             TextWrapping="Wrap"
             Visibility="Visible" />
@@ -133,5 +133,14 @@
             Click="CancelAllDownloads_Click"
             Content="Alles abbrechen"
             IsEnabled="False" />
+        <TextBlock
+            Name="ProgressIndicator"
+            Width="632"
+            Margin="10,258,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Text="Gesamtfortschritt: "
+            TextWrapping="Wrap" />
+
     </Grid>
 </Window>

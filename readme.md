@@ -19,4 +19,5 @@ ToDos:
 - [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started
 - [] integrate faster custom youtube download client
-- [] improve behavior of download progress bar if downloads are canceled 
+- [x] improve behavior of download progress bar if downloads are canceled 
+- [] add percentage label for single download

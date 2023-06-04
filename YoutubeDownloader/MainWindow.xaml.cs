@@ -29,7 +29,6 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
-            
         }
 
         #region Click events
@@ -250,6 +249,7 @@ namespace YoutubeDownloader
                             totalRead += read;
                             Debug.Write($"\rDownloading {totalRead}/{totalByte} ...");
                             DownloadingIndicatorBar.Value = totalRead / (double)totalByte * 100;
+                            CurrentDownloadProgressLabel.Text = $"{totalRead / (double)totalByte * 100:0.##} %";
                             taskbar.SetProgressValue(totalRead, (int)totalByte);
                         }
 
@@ -354,7 +354,9 @@ namespace YoutubeDownloader
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
+            taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
             System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+            taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
 
 

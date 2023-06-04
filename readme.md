@@ -11,7 +11,6 @@ ToDos:
 - [x] improve behavior of link textbox e.g. display title(s) of video -> now displaying video title while downloading
 - [X] cancel downloads by clicking on button
 - [x] improve validation of textbox with youtube links
-- [] improve controls -> scaling windows
 - [x] improve behavior of canceled or 0 downloads e.g. deleting files, Messageboxes displaying video titles etc.
 - [x] add more settings for output formats (video resolution, audio bitrate etc.). The best bitrate for audio files will now be downloaded for videos difficult since most video files don't have audio
 - [x] instead of canceling one download cancel all downloads
@@ -20,4 +19,8 @@ ToDos:
 - [] handle exceptions which occur randomly if download is started
 - [] integrate faster custom youtube download client
 - [x] improve behavior of download progress bar if downloads are canceled 
-- [] add percentage label for single download
+- [x] add percentage label for single download 
+- [] improve controls -> scaling windows
+- [] add age verification fix
+- [] show estimated duration of downloads
+- [] refactor and split whole project

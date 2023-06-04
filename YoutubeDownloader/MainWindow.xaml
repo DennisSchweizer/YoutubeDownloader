@@ -124,6 +124,13 @@
             VerticalAlignment="Top"
             IsIndeterminate="False"
             Visibility="Visible" />
+        <TextBlock
+            Name="CurrentDownloadProgressLabel"
+            Margin="580,201,-10,92"
+            HorizontalAlignment="Center"
+            Text=""
+            TextWrapping="Wrap"
+            Visibility="Visible" />
         <Button
             Name="CancelAll"
             Width="123"

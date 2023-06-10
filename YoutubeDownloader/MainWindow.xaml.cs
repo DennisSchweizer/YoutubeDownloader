@@ -69,18 +69,6 @@ namespace YoutubeDownloader
             }
         }
 
-        [Obsolete]
-        private void ResetApplication_Click(object sender, RoutedEventArgs e)
-        {
-            //Set all GUI-Elements to default values
-            VideoList.Text = "Links zu den Videos hier in je eine Zeile einfügen";
-            VideoList.Foreground = Brushes.Gray;
-            DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
-            Audio.IsChecked = true;
-            Video.IsChecked = false;
-            cancellationToken = new CancellationTokenSource();
-        }
-
         private void CancelDownload_Click(object sender, RoutedEventArgs e)
         {
             cancellationToken.Cancel();
@@ -118,6 +106,8 @@ namespace YoutubeDownloader
             
             return (bool)Audio.IsChecked ? videoTitle + ".mp3" : videoTitle + ".mp4";
         }
+
+
         /// <summary>
         /// ToDo in order to customize quality / resolution / bitrate and removing the necessity for MediaToolkit NuGet package
         /// 1. Use GetAllVideosAsync() in order to check for available audio / video data
@@ -348,7 +338,6 @@ namespace YoutubeDownloader
         private void InitializeAppForDownloading()
         {
             DownloadList.IsEnabled = false;
-            ResetApplication.IsEnabled = false;
             Audio.IsEnabled = false;
             Video.IsEnabled = false;
             BrowseSaveDirectory.IsEnabled = false;
@@ -369,7 +358,6 @@ namespace YoutubeDownloader
         {
             // Enable all controls after download
             DownloadList.IsEnabled = true;
-            ResetApplication.IsEnabled = true;
             Audio.IsEnabled = true;
             Video.IsEnabled = true;
             BrowseSaveDirectory.IsEnabled = true;

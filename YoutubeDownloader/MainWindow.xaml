@@ -34,16 +34,6 @@
             VerticalAlignment="Top"
             Content="Video"
             IsChecked="False" />
-        <Button
-            Name="ResetApplication"
-            Width="60"
-            Height="23"
-            Margin="582,77,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Click="ResetApplication_Click"
-            Content="Reset"
-            Visibility="Hidden" />
         <TextBlock
             Name="DownloadDirectory"
             Width="400"

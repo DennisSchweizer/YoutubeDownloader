@@ -42,7 +42,8 @@
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="ResetApplication_Click"
-            Content="Reset" />
+            Content="Reset"
+            Visibility="Hidden" />
         <TextBlock
             Name="DownloadDirectory"
             Width="400"

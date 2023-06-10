@@ -6,63 +6,63 @@
     xmlns:local="clr-namespace:YoutubeDownloader"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Youtube Downloader"
-    Width="678"
+    Width="649"
     Height="367"
     ResizeMode="CanMinimize"
     mc:Ignorable="d">
 
     <Grid Margin="0,0,5,-33">
         <TextBlock
-            Width="120"
+            Width="64"
             Height="19"
-            Margin="582,13,0,0"
+            Margin="551,18,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Text="MP3 / MP4"
-            TextWrapping="Wrap" />
+            TextWrapping="Wrap" RenderTransformOrigin="0.844,0.367" />
         <RadioButton
             Name="Audio"
-            Margin="582,32,0,0"
+            Margin="551,42,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Content="Audio"
             IsChecked="True" />
         <RadioButton
             Name="Video"
-            Margin="582,49,0,0"
+            Margin="552,62,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Content="Video"
             IsChecked="False" />
         <TextBlock
             Name="DownloadDirectory"
-            Width="400"
+            Width="528"
             Height="24"
-            Margin="10,147,0,0"
+            Margin="87,146,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Text=""
             TextWrapping="Wrap" />
         <TextBlock
-            Width="150"
+            Width="81"
             Height="20"
-            Margin="10,123,0,0"
+            Margin="10,146,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Text="Speicherpfad:"
             TextWrapping="Wrap" />
         <Button
             Name="BrowseSaveDirectory"
-            Width="123"
+            Width="88"
             Height="23"
-            Margin="431,77,0,0"
+            Margin="446,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="BrowseSaveDirectory_Click"
             Content="Durchsuchen" />
         <TextBox
             Name="VideoList"
-            Width="400"
+            Width="524"
             Height="77"
             Margin="10,23,0,0"
             HorizontalAlignment="Left"
@@ -77,24 +77,24 @@
         <Button
             Name="DownloadList"
             Height="23"
-            Margin="431,24,0,0"
+            Margin="10,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="DownloadList_Click"
             Content="Dateien herunterladen" />
         <Button
             Name="CancelOperation"
-            Width="123"
-            Margin="431,52,0,0"
+            Width="108"
+            Margin="160,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="CancelDownload_Click"
             Content="Abbrechen"
             IsEnabled="False"
-            RenderTransformOrigin="0.253,0.139" />
+            RenderTransformOrigin="0.253,0.139" Height="23" />
         <ProgressBar
             Name="DownloadProgress"
-            Width="632"
+            Width="605"
             Height="20"
             Margin="10,279,0,0"
             HorizontalAlignment="Left"
@@ -102,35 +102,36 @@
             Visibility="Visible" />
         <TextBlock
             Name="CurrentDownload"
-            Margin="10,201,-10,92"
+            Margin="10,175,0,126"
             Text="Aktueller Download: "
             TextWrapping="Wrap"
-            Visibility="Visible" />
+            Visibility="Visible" HorizontalAlignment="Left" Width="605"
+            />
         <ProgressBar
             Name="DownloadingIndicatorBar"
-            Width="632"
+            Width="605"
             Height="20"
-            Margin="10,171,0,0"
+            Margin="10,223,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             IsIndeterminate="False"
             Visibility="Visible" />
         <TextBlock
             Name="CurrentDownloadProgressLabel"
-            Margin="580,201,-10,92"
-            HorizontalAlignment="Center"
-            Text=""
+            Margin="570,204,0,118"
+            HorizontalAlignment="Left"
+            Text="100,00%"
             TextWrapping="Wrap"
             Visibility="Visible" />
         <Button
             Name="CancelAll"
-            Width="123"
-            Margin="431,105,0,0"
+            Width="122"
+            Margin="300,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="CancelAllDownloads_Click"
             Content="Alles abbrechen"
-            IsEnabled="False" />
+            IsEnabled="False" Height="23" />
         <TextBlock
             Name="ProgressIndicator"
             Width="632"

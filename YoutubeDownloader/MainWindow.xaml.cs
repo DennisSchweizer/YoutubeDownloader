@@ -107,6 +107,21 @@ namespace YoutubeDownloader
             return (bool)Audio.IsChecked ? videoTitle + ".mp3" : videoTitle + ".mp4";
         }
 
+        private void CheckForAlreadyLoadedFile(CancellationToken cts)
+        {
+            // Check if file name already exists in directory before downloading
+            if (File.Exists(FullFilePath))
+            {
+                DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoFullName} existiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.Yes)
+                {
+                    cancellationToken.Cancel();
+                }
+            }
+
+            cts.ThrowIfCancellationRequested();
+        }
 
         /// <summary>
         /// ToDo in order to customize quality / resolution / bitrate and removing the necessity for MediaToolkit NuGet package
@@ -127,18 +142,8 @@ namespace YoutubeDownloader
                 videoFullName = GenerateFullFileName(vid);
                 FullFilePath = DownloadDirectory.Text + videoFullName;
 
-                // Check if file name already exists in directory before downloading
-                if (File.Exists(FullFilePath))
-                {
-                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoFullName} existiert bereits. Soll der Download übersprungen werden?","Datei existiert bereits!",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                CheckForAlreadyLoadedFile(cts);
 
-                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.Yes)
-                    {
-                        cancellationToken.Cancel();
-                    }
-                }
-
-                cts.ThrowIfCancellationRequested();
                 CurrentDownload.Text += $" \nDateiname: {videoFullName}";
 
                 await Task.WhenAny(DownloadVideo(vid, cts), Task.Run(() =>
@@ -185,9 +190,9 @@ namespace YoutubeDownloader
                 }
             }
 
+            // If single download is canceled or successfully finished refresh GUI
             finally
             {
-                //DownloadingIndicatorBar.Value = 0;
                 taskbar.SetProgressValue(0, 100);
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {videoFullName}", string.Empty);
             }
@@ -207,7 +212,6 @@ namespace YoutubeDownloader
             byte[] buffer = new byte[16 * 1024];
             int read;
             int totalRead = 0;
-            double currentProgress = 0.0;
 
             while ((read = await input.ReadAsync(buffer, cts)) > 0)
             {
@@ -217,11 +221,7 @@ namespace YoutubeDownloader
                     await output.WriteAsync(buffer.AsMemory(0, read), cts);
                     totalRead += read;
 
-                    // Refresh progress
-                    currentProgress = totalRead / (double)totalByte * 100;
-                    DownloadingIndicatorBar.Value = currentProgress;
-                    CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##} %";
-                    taskbar.SetProgressValue(totalRead, (int)totalByte);
+                    RefreshGuiCurrentDownload(totalByte, totalRead);
                 }
 
                 catch (OperationCanceledException)
@@ -229,6 +229,16 @@ namespace YoutubeDownloader
                     throw;
                 }
             }
+        }
+
+        private void RefreshGuiCurrentDownload(long? totalByte, int totalRead)
+        {
+            
+            // Refresh progress
+            double currentProgress = totalRead / (double)totalByte * 100;
+            DownloadingIndicatorBar.Value = currentProgress;
+            CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##} %";
+            taskbar.SetProgressValue(totalRead, (int)totalByte);
         }
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
@@ -299,7 +309,6 @@ namespace YoutubeDownloader
             FinalizeDownloads();
         }
 
-
         #endregion
 
         private void HandleCanceledDownload(string videoName)
@@ -363,12 +372,8 @@ namespace YoutubeDownloader
             BrowseSaveDirectory.IsEnabled = true;
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
-            //DownloadingIndicatorBar.Visibility = Visibility.Hidden;
-            //DownloadProgress.Visibility = Visibility.Hidden;
-            CurrentDownload.Visibility = Visibility.Hidden;
-            //DownloadProgress.Value = 0;
             CancelAll.IsEnabled = false;
-            ProgressIndicator.Visibility = Visibility.Hidden;
+
 
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();

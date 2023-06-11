@@ -55,7 +55,7 @@
             Name="BrowseSaveDirectory"
             Width="88"
             Height="23"
-            Margin="446,108,0,0"
+            Margin="10,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="BrowseSaveDirectory_Click"
@@ -77,19 +77,19 @@
         <Button
             Name="DownloadList"
             Height="23"
-            Margin="10,108,0,0"
+            Margin="125,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="DownloadList_Click"
             Content="Dateien herunterladen" />
         <Button
             Name="CancelOperation"
-            Width="108"
-            Margin="160,108,0,0"
+            Width="156"
+            Margin="275,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="CancelDownload_Click"
-            Content="Abbrechen"
+            Content="Akt. Download abbrechen"
             IsEnabled="False"
             RenderTransformOrigin="0.253,0.139" Height="23" />
         <ProgressBar
@@ -125,12 +125,12 @@
             Visibility="Visible" />
         <Button
             Name="CancelAll"
-            Width="122"
-            Margin="300,108,0,0"
+            Width="158"
+            Margin="457,108,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="CancelAllDownloads_Click"
-            Content="Alles abbrechen"
+            Content="Alle Downloads abbrechen"
             IsEnabled="False" Height="23" />
         <TextBlock
             Name="ProgressIndicator"

@@ -96,14 +96,6 @@ namespace YoutubeDownloader
 
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
 
-            #region In testing
-            // NEEDS SOME IMPROVEMENT: BREAKS IF A COMBINATION OF PASTED TEXT VIA CTRL+V AND DOUBLE CLICK IS USED - FOR NOW DEACTIVATED
-            //foreach (string video in videosToBeDownloaded)
-            //{
-            //    VideoList.Text += $"{video}";
-            //}
-            #endregion
-
             // Initialize variables for progress bar
             uint downloadedVideos = 0;
             ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
@@ -144,12 +136,6 @@ namespace YoutubeDownloader
 
                 // Remove current download text from label 
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" {video.ReplaceLineEndings(string.Empty)}", string.Empty);
-
-                if (VideoList.Text.Contains(video))
-                {
-                    // ToDo Either delete the link or highlight it in some way
-                    //VideoList.Text = VideoList.Text.Replace(video, string.Empty);
-                }
 
                 // Remove unnecessary data from memory
                 GC.Collect();
@@ -266,8 +252,6 @@ namespace YoutubeDownloader
             }
         }
 
-
-
         #endregion
 
         #region HelperMethods
@@ -356,7 +340,7 @@ namespace YoutubeDownloader
         }
         #endregion
 
-        #region ControllingGUIElementsBeforeAfterDownload
+        #region Controlling GUI elements before and after download
         private void InitializeAppForDownloading()
         {
             DownloadList.IsEnabled = false;
@@ -395,6 +379,7 @@ namespace YoutubeDownloader
             System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
+
         #endregion
     }
 }

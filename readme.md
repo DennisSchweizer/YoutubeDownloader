@@ -24,3 +24,5 @@ ToDos:
 - [] add age verification fix
 - [] show estimated duration of downloads
 - [] refactor and split whole project
+- [] implement parallel downloads
+- [] split GUI functions from basic functions

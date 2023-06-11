@@ -15,14 +15,14 @@ ToDos:
 - [x] add more settings for output formats (video resolution, audio bitrate etc.). The best bitrate for audio files will now be downloaded for videos difficult since most video files don't have audio
 - [x] instead of canceling one download cancel all downloads
 - [x] implemented progress bar behavior in task bar
-- [] try to merge best audio file with best video file
-- [] handle exceptions which occur randomly if download is started
-- [] integrate faster custom youtube download client
+- [x] integrate faster custom youtube download client
 - [x] improve behavior of download progress bar if downloads are canceled 
 - [x] add percentage label for single download 
+- [x] refactor and split whole project
 - [] improve controls -> scaling windows
 - [] add age verification fix
 - [] show estimated duration of downloads
-- [] refactor and split whole project
 - [] implement parallel downloads
 - [] split GUI functions from basic functions
+- [] try to merge best audio file with best video file
+- [] handle exceptions which occur randomly if download is started

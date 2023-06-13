@@ -284,7 +284,9 @@ namespace YoutubeDownloader
             cancellationToken = new CancellationTokenSource();
 
             // If this messagebox is not integrated the file stream cannot be deleted if the download is canceled
-            System.Windows.MessageBox.Show($"Der Download der Datei {videoName} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation);
+            taskbar.SetProgressState(TaskbarProgressBarState.Paused);
+            taskbar.SetProgressValue(100, 100);
+            System.Windows.MessageBox.Show($"Der Download der Datei {videoName} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             CurrentDownload.Text = "Aktueller Download: ";
             DownloadProgress.Foreground = Brushes.Yellow;
 
@@ -308,11 +310,16 @@ namespace YoutubeDownloader
             // Check if file name already exists in directory before downloading
             if (File.Exists(FullFilePath))
             {
-                DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoFullName} existiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
+                DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei {videoFullName} existiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
 
                 if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.Yes)
                 {
                     cancellationToken.Cancel();
+                }
+                else
+                {
+                    taskbar.SetProgressState(TaskbarProgressBarState.Normal);
                 }
             }
 
@@ -376,7 +383,7 @@ namespace YoutubeDownloader
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
             taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
-            System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information);
+            System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
 

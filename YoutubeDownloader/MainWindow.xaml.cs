@@ -35,6 +35,7 @@ namespace YoutubeDownloader
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         Stopwatch sw = new Stopwatch();
         Stream output = null;
+        bool pausePressed = false;
         #endregion
 
         #region Click events
@@ -247,6 +248,13 @@ namespace YoutubeDownloader
 
             while ((read = await input.ReadAsync(buffer, cts)) > 0)
             {
+                await Task.Run(() =>
+                {
+                    while (pausePressed)
+                    {
+                        // paused
+                    }
+                });
                 try
                 {
                     cts.ThrowIfCancellationRequested();
@@ -410,6 +418,20 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
             System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
+        }
+
+        private void OnPauseClicked(object sender, RoutedEventArgs e)
+        {
+            if (!pausePressed)
+            {
+                PauseDownload.Content = "Fortsetzen";
+            }
+            else
+            {
+                PauseDownload.Content = "Pause";
+            }
+            pausePressed = !pausePressed;
+
         }
 
         #endregion

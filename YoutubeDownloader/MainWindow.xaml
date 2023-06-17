@@ -146,17 +146,26 @@
             TextWrapping="Wrap" />
         <TextBlock
             Name="Duration"
+            Width="170"
             Margin="484,258,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Text="Vergangene Zeit: 0:00:00"
-            TextWrapping="Wrap" Width="170" />
+            TextWrapping="Wrap" />
         <TextBlock
             Name="EstimatedTime"
+            Width="170"
             Margin="0,258,0,0"
             HorizontalAlignment="Center"
             VerticalAlignment="Top"
             Text="Verbleibende Zeit: 0:00:00"
-            TextWrapping="Wrap" Width="170" />
+            TextWrapping="Wrap" />
+        <Button
+            Name="PauseDownload"
+            Margin="536,144,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Click="OnPauseClicked"
+            Content="Pause" Width="79" />
     </Grid>
 </Window>

@@ -19,9 +19,11 @@ ToDos:
 - [x] improve behavior of download progress bar if downloads are canceled 
 - [x] add percentage label for single download 
 - [x] refactor and split whole project
+- [x] show estimated duration of downloads
+- [] implement pause button
 - [] improve controls -> scaling windows
 - [] add age verification fix
-- [] show estimated duration of downloads
+
 - [] implement parallel downloads
 - [] split GUI functions from basic functions
 - [] try to merge best audio file with best video file

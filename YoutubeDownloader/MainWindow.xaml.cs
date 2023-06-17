@@ -61,7 +61,19 @@ namespace YoutubeDownloader
             }
 
         }
+        private void OnPauseClicked(object sender, RoutedEventArgs e)
+        {
+            if (!pausePressed)
+            {
+                PauseDownload.Content = "Fortsetzen";
+            }
+            else
+            {
+                PauseDownload.Content = "Pause";
+            }
+            pausePressed = !pausePressed;
 
+        }
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
         {
             using var fbd = new FolderBrowserDialog();
@@ -72,7 +84,6 @@ namespace YoutubeDownloader
                 DownloadDirectory.Text = $"{fbd.SelectedPath}\\";
             }
         }
-
         private void CancelDownload_Click(object sender, RoutedEventArgs e)
         {
             cancellationToken.Cancel();
@@ -80,7 +91,6 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             DownloadProgress.Foreground = Brushes.Yellow;
         }
-
         private void CancelAllDownloads_Click(object sender, RoutedEventArgs e)
         {
             cancellationToken.Cancel();
@@ -134,8 +144,8 @@ namespace YoutubeDownloader
                 // Refresh progress bar for whole download process
                 finally
                 {
-                    output?.Dispose();
-                    output?.Close();
+                    DisposeAndCloseStream();
+
                     downloadedVideos++;
                     DownloadProgress.Value = downloadedVideos * 100 / (uint)videosToBeDownloaded.Count;
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
@@ -248,6 +258,7 @@ namespace YoutubeDownloader
 
             while ((read = await input.ReadAsync(buffer, cts)) > 0)
             {
+                // Task for pausing download
                 await Task.Run(() =>
                 {
                     while (pausePressed)
@@ -255,6 +266,7 @@ namespace YoutubeDownloader
                         // paused
                     }
                 }, cts);
+
                 try
                 {
                     cts.ThrowIfCancellationRequested();
@@ -269,8 +281,7 @@ namespace YoutubeDownloader
 
                 catch (OperationCanceledException)
                 {
-                    output?.Dispose();
-                    output?.Close();
+                    DisposeAndCloseStream();
                     throw;
                 }
             }
@@ -301,8 +312,7 @@ namespace YoutubeDownloader
         }
         private void HandleCanceledDownload(string videoName)
         {
-            output?.Dispose();
-            output?.Close();
+            DisposeAndCloseStream();
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -331,6 +341,12 @@ namespace YoutubeDownloader
             string videoTitle = string.Join('_', video.Title.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
 
             return (bool)Audio.IsChecked ? videoTitle + ".mp3" : videoTitle + ".mp4";
+        }
+
+        private void DisposeAndCloseStream()
+        {
+            output?.Dispose();
+            output?.Close();
         }
 
         private void CheckForAlreadyLoadedFile(CancellationToken cts)
@@ -423,21 +439,6 @@ namespace YoutubeDownloader
             System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
-
-        private void OnPauseClicked(object sender, RoutedEventArgs e)
-        {
-            if (!pausePressed)
-            {
-                PauseDownload.Content = "Fortsetzen";
-            }
-            else
-            {
-                PauseDownload.Content = "Pause";
-            }
-            pausePressed = !pausePressed;
-
-        }
-
         #endregion
     }
 }

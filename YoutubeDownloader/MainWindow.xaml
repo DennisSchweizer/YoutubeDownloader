@@ -162,10 +162,12 @@
             TextWrapping="Wrap" />
         <Button
             Name="PauseDownload"
+            Width="79"
             Margin="536,144,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="OnPauseClicked"
-            Content="Pause" Width="79" />
+            Content="Pause"
+            IsEnabled="False" />
     </Grid>
 </Window>

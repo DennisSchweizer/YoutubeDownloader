@@ -134,8 +134,8 @@ namespace YoutubeDownloader
                 // Refresh progress bar for whole download process
                 finally
                 {
-                    output.Dispose();
-                    output.Close();
+                    output?.Dispose();
+                    output?.Close();
                     downloadedVideos++;
                     DownloadProgress.Value = downloadedVideos * 100 / (uint)videosToBeDownloaded.Count;
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
@@ -254,7 +254,7 @@ namespace YoutubeDownloader
                     {
                         // paused
                     }
-                });
+                }, cts);
                 try
                 {
                     cts.ThrowIfCancellationRequested();
@@ -269,8 +269,8 @@ namespace YoutubeDownloader
 
                 catch (OperationCanceledException)
                 {
-                    output.Dispose();
-                    output.Close();
+                    output?.Dispose();
+                    output?.Close();
                     throw;
                 }
             }
@@ -301,8 +301,8 @@ namespace YoutubeDownloader
         }
         private void HandleCanceledDownload(string videoName)
         {
-            output.Dispose();
-            output.Close();
+            output?.Dispose();
+            output?.Close();
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -321,6 +321,8 @@ namespace YoutubeDownloader
             {
                 File.Delete(FullFilePath);
             }
+            PauseDownload.Content = "Pause";
+            pausePressed = false;
         }
 
         private string GenerateFullFileName(YouTubeVideo video)
@@ -389,6 +391,7 @@ namespace YoutubeDownloader
             BrowseSaveDirectory.IsEnabled = false;
             VideoList.IsEnabled = false;
             CancelOperation.IsEnabled = true;
+            PauseDownload.IsEnabled = true;
             DownloadingIndicatorBar.Visibility = Visibility.Visible;
             DownloadProgress.Visibility = Visibility.Visible;
             CurrentDownload.Visibility = Visibility.Visible;
@@ -407,6 +410,7 @@ namespace YoutubeDownloader
             Audio.IsEnabled = true;
             Video.IsEnabled = true;
             BrowseSaveDirectory.IsEnabled = true;
+            PauseDownload.IsEnabled = false;
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
             CancelAll.IsEnabled = false;

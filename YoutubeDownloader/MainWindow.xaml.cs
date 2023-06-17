@@ -34,6 +34,7 @@ namespace YoutubeDownloader
         bool cancelAllDownloads = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         Stopwatch sw = new Stopwatch();
+        Stream output = null;
         #endregion
 
         #region Click events
@@ -114,6 +115,7 @@ namespace YoutubeDownloader
 
                 catch (OperationCanceledException)
                 {
+
                     HandleCanceledDownload(videoFullName);
 
                     if (cancelCurrentDownload)
@@ -131,6 +133,8 @@ namespace YoutubeDownloader
                 // Refresh progress bar for whole download process
                 finally
                 {
+                    output.Dispose();
+                    output.Close();
                     downloadedVideos++;
                     DownloadProgress.Value = downloadedVideos * 100 / (uint)videosToBeDownloaded.Count;
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
@@ -226,7 +230,7 @@ namespace YoutubeDownloader
         {
             sw.Start();
             var client = new HttpClient();
-            using Stream output = File.OpenWrite(FullFilePath);
+            output = File.OpenWrite(FullFilePath);
             long? totalByte = 0;
             using (var request = new HttpRequestMessage(HttpMethod.Head, vid.Uri))
             {
@@ -251,12 +255,14 @@ namespace YoutubeDownloader
                     totalRead += read;
 
 
-                    RefreshGuiCurrentDownload(totalByte, totalRead, lastRead);
+                    RefreshGuiCurrentDownload(totalByte, totalRead);
 
                 }
 
                 catch (OperationCanceledException)
                 {
+                    output.Dispose();
+                    output.Close();
                     throw;
                 }
             }
@@ -287,6 +293,8 @@ namespace YoutubeDownloader
         }
         private void HandleCanceledDownload(string videoName)
         {
+            output.Dispose();
+            output.Close();
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -336,20 +344,21 @@ namespace YoutubeDownloader
             cts.ThrowIfCancellationRequested();
         }
 
-        private void RefreshGuiCurrentDownload(long? totalByte, int totalRead, int lastRead)
+        private void RefreshGuiCurrentDownload(long? totalByte, int totalRead)
         {
 
-            // Refresh progress
+            // Refresh progress percenatge label
             double currentProgress = totalRead / (double)totalByte * 100;
             DownloadingIndicatorBar.Value = currentProgress;
-            //CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##} %";
+            CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
             taskbar.SetProgressValue(totalRead, (int)totalByte);
 
+            // Refresh estimated remaining time and duration
             TimeSpan duration = sw.Elapsed;
-            Duration.Text = $"Dauer: {duration.ToString("h\\:mm\\:ss")}s";
+            Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
             double bytesLeft = ((double)totalByte - totalRead);
             TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
-            CurrentDownloadProgressLabel.Text = $"{calced.ToString("h\\:mm\\:ss")} s";
+            EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
         }
 
         private static List<string> FilterForYoutubeLinks(string textToBeFiltered)

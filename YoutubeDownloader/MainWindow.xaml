@@ -146,11 +146,17 @@
             TextWrapping="Wrap" />
         <TextBlock
             Name="Duration"
-            Margin="565,148,0,0"
+            Margin="484,258,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
-            Text="Zeitdauer"
-            TextWrapping="Wrap" />
-
+            Text="Vergangene Zeit: 0:00:00"
+            TextWrapping="Wrap" Width="170" />
+        <TextBlock
+            Name="EstimatedTime"
+            Margin="0,258,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Text="Verbleibende Zeit: 0:00:00"
+            TextWrapping="Wrap" Width="170" />
     </Grid>
 </Window>

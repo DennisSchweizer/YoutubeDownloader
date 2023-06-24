@@ -13,6 +13,7 @@ using System.Net.Http;
 using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
 
+
 namespace YoutubeDownloader
 {
 
@@ -33,6 +34,7 @@ namespace YoutubeDownloader
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         Stopwatch sw = new Stopwatch();
         bool pausePressed = false;
+        Stream streamForSequentialDownload;
         #endregion
 
         #region Click events
@@ -98,27 +100,18 @@ namespace YoutubeDownloader
         }
         #endregion
 
-        #region Downloading
+        #region Sequential Download
 
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
             InitializeAppForDownloading();
 
-            // Prepare and generate downloadable media list
-            List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
-            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
-            List<string> paths = GenerateFullFileNameList(vids);
-            List<Tuple<YouTubeVideo, string>> vidsWithPaths = vids.Zip(paths, (video, path) => new Tuple<YouTubeVideo, string>(video, path)).ToList();
-            // Add links to all tuple elements here 
-            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = vids.Zip(paths, videosToBeDownloaded).ToList();
-
-            List<int> remainingElements = CheckForAlreadyLoadedFile(vidsWithPathsAndLinks);
-            vidsWithPaths = remainingElements.Select(index => vidsWithPaths[index]).ToList();
+            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
 
             // Initialize variables for progress bar
             uint downloadedVideos = 0;
-            ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPaths.Count} Dateien";
+            ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPathsAndLinks.Count} Dateien";
 
 
             foreach ((YouTubeVideo, string, string) video in vidsWithPathsAndLinks)
@@ -135,7 +128,7 @@ namespace YoutubeDownloader
                 catch (OperationCanceledException)
                 {
 
-                    HandleCanceledDownload(video, null);
+                    HandleCanceledDownload(video, streamForSequentialDownload);
 
                     if (cancelCurrentDownload)
                     {
@@ -152,14 +145,13 @@ namespace YoutubeDownloader
                 // Refresh progress bar for whole download process
                 finally
                 {
-                    DisposeAndCloseStream(null);
-
+                    DisposeAndCloseStream(streamForSequentialDownload);
                     downloadedVideos++;
-                    DownloadProgress.Value = downloadedVideos * 100 / (uint)videosToBeDownloaded.Count;
-                    ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {videosToBeDownloaded.Count} Dateien";
-
+                    DownloadProgress.Value = downloadedVideos * 100 / (uint)vidsWithPathsAndLinks.Count;
+                    ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPathsAndLinks.Count} Dateien";
                 }
 
+ 
                 // Remove current download text from label 
                 CurrentDownload.Text = CurrentDownload.Text.Replace($" {video.Item3.ReplaceLineEndings(string.Empty)}", string.Empty);
 
@@ -169,7 +161,6 @@ namespace YoutubeDownloader
             }
             FinalizeDownloads();
         }
-
 
         private async Task DownloadYoutubeVideoAsync((YouTubeVideo, string, string) mediaToBeLoaded, CancellationToken cts)
         {   
@@ -232,69 +223,20 @@ namespace YoutubeDownloader
         private async Task DownloadVideo((YouTubeVideo, string, string) vid, CancellationToken cts)
         {
             sw.Start();
-            var client = new HttpClient();
-            Stream output = File.OpenWrite(vid.Item2);
-            long? totalByte = 0;
-            using (var request = new HttpRequestMessage(HttpMethod.Head, vid.Item1.Uri))
-            {
-                totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength;
-            }
-
-            using var input = await client.GetStreamAsync(vid.Item1.Uri, cts);
-            byte[] buffer = new byte[16 * 1024];
-            int read;
-            int totalRead = 0;
-            int lastRead = 0;
-
-
-
-            while ((read = await input.ReadAsync(buffer, cts)) > 0)
-            {
-                // Task for pausing download
-                await Task.Run(() =>
-                {
-                    while (pausePressed)
-                    {
-                        // paused
-                    }
-                }, cts);
-
-                try
-                {
-                    cts.ThrowIfCancellationRequested();
-                    await output.WriteAsync(buffer.AsMemory(0, read), cts);
-                    lastRead = totalRead;
-                    totalRead += read;
-
-
-                    RefreshGuiCurrentDownload(totalByte, totalRead);
-
-                }
-
-                catch (OperationCanceledException)
-                {
-                    DisposeAndCloseStream(output);
-                    throw;
-                }
-            }
+            streamForSequentialDownload = File.OpenWrite(vid.Item2);
+            await WriteFileToDrive(vid, streamForSequentialDownload, cts);
         }
 
         #endregion
+
 
 
         #region Parallel Download
         private async void ParallelDownload_Click(object sender, RoutedEventArgs e)
         {
             InitializeAppForDownloading();
-            List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
 
-            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
-            List<string> paths = GenerateFullFileNameList(vids);
-            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = vids.Zip(paths, videosToBeDownloaded).ToList();
-
-            List<int> remainingElements = CheckForAlreadyLoadedFile(vidsWithPathsAndLinks);
-            vidsWithPathsAndLinks = remainingElements.Select(index => vidsWithPathsAndLinks[index]).ToList();
-
+            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
             List<Task> tasks = new List<Task>();
 
@@ -311,12 +253,25 @@ namespace YoutubeDownloader
         }
 
 
-        private static async Task DownloadVideosParallel((YouTubeVideo, string, string) media, CancellationToken cts)
+        private async Task DownloadVideosParallel((YouTubeVideo, string, string) media, CancellationToken cts)
         {
-            var client = new HttpClient();
-
             // There needs to be a single stream for each parallel download otherwise it could cause problems
             Stream output = File.OpenWrite(media.Item2);
+
+            await WriteFileToDrive(media, output, cts);
+
+            DisposeAndCloseStream(output);
+        }
+
+        #endregion
+
+
+        private async Task WriteFileToDrive((YouTubeVideo, string, string) media,Stream stream, CancellationToken cts)
+        {
+
+            //Equality starts here
+            var client = new HttpClient();
+
             long? totalByte;
             using (var request = new HttpRequestMessage(HttpMethod.Head, media.Item1.Uri))
             {
@@ -326,25 +281,40 @@ namespace YoutubeDownloader
             using var input = await client.GetStreamAsync(media.Item1.Uri, cts);
             byte[] buffer = new byte[16 * 1024];
             int read;
+            int totalRead = 0;
+            int lastRead = 0;
 
 
             while ((read = await input.ReadAsync(buffer, cts)) > 0)
             {
+                // Task for pausing download
+                await Task.Run(() =>
+                {
+                    while (pausePressed)
+                    {
+                        // paused
+                    }
+                }, cts);
+
                 try
                 {
-                    await output.WriteAsync(buffer.AsMemory(0, read), cts);
+                    cts.ThrowIfCancellationRequested();
+                    await stream.WriteAsync(buffer.AsMemory(0, read), cts);
+                    lastRead = totalRead;
+                    totalRead += read;
+
+
+                    RefreshGuiCurrentDownload(totalByte, totalRead);
                 }
 
                 catch (OperationCanceledException)
                 {
-                    DisposeAndCloseStream(output);
+                    DisposeAndCloseStream(stream);
                     throw;
                 }
             }
-            DisposeAndCloseStream(output);
+            //Equality ends here
         }
-
-        #endregion
 
 
         #region HelperMethods
@@ -369,6 +339,18 @@ namespace YoutubeDownloader
             }
         }
 
+        private async Task<List<(YouTubeVideo vids, string path, string link)>> GenerateListOfDownloads()
+        {
+            List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
+
+            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
+            List<string> paths = GenerateFullFileNameList(vids);
+            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = vids.Zip(paths, videosToBeDownloaded).ToList();
+
+            List<int> remainingElements = CheckForAlreadyLoadedFile(vidsWithPathsAndLinks);
+            return vidsWithPathsAndLinks = remainingElements.Select(index => vidsWithPathsAndLinks[index]).ToList();
+        }
+
 
         private void HandleCanceledDownload((YouTubeVideo, string, string) video, Stream output)
         {
@@ -387,7 +369,7 @@ namespace YoutubeDownloader
             DownloadProgress.Foreground = Brushes.Yellow;
 
             // Download was started and file did not exist before current download session
-            if (File.Exists(video.Item2) && cancelAllDownloads || cancelCurrentDownload && output != null)
+            if (File.Exists(video.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
             {
                 File.Delete(video.Item2);
             }
@@ -433,14 +415,11 @@ namespace YoutubeDownloader
                     taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
                     DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei \n{videosWithPaths[i].Item2} \nexistiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
 
-                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.Yes)
-                    {
-                        //nop
-                    }
-                    else
+                    if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
                     {
                         indicesToBeDownloaded.Add(i);
                     }
+
                 }
                 else
                 {
@@ -456,7 +435,7 @@ namespace YoutubeDownloader
             List<YouTubeVideo> youTubeVideosToBeLoaded = new List<YouTubeVideo>();
             foreach (string video in youTubeLinks)
             {
-                YouTubeVideo youTubeVideo = await GetMediaInformation(video, CancellationToken.None);
+                YouTubeVideo youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
                 youTubeVideosToBeLoaded.Add(youTubeVideo);
             }
 
@@ -524,7 +503,7 @@ namespace YoutubeDownloader
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
             CancelAll.IsEnabled = false;
-
+            DownloadProgress.Value = 100;
 
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             cancellationToken.Cancel();

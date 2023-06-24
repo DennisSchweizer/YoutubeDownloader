@@ -169,5 +169,12 @@
             Click="OnPauseClicked"
             Content="Pause"
             IsEnabled="False" />
+        <Button
+            Name="ParallelDownload"
+            Margin="408,144,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Click="ParallelDownload_Click"
+            Content="Paralleler Download" />
     </Grid>
 </Window>

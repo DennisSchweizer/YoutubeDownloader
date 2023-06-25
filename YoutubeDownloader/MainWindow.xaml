@@ -168,7 +168,8 @@
             VerticalAlignment="Top"
             Click="OnPauseClicked"
             Content="Pause"
-            IsEnabled="False" />
+            IsEnabled="False"
+            Visibility="Hidden"/>
         <Button
             Name="ParallelDownload"
             Margin="408,144,0,0"

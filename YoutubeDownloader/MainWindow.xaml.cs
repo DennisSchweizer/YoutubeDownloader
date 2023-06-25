@@ -28,13 +28,15 @@ namespace YoutubeDownloader
         #region Properties / Global variables
 
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
-
         bool cancelCurrentDownload = false;
         bool cancelAllDownloads = false;
-        readonly TaskbarManager taskbar = TaskbarManager.Instance;
-        Stopwatch sw = new Stopwatch();
         bool pausePressed = false;
+        readonly TaskbarManager taskbar = TaskbarManager.Instance;
+        readonly Stopwatch sw = new Stopwatch();
+
         Stream streamForSequentialDownload;
+
+
         #endregion
 
         #region Click events
@@ -238,9 +240,14 @@ namespace YoutubeDownloader
 
             List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
+
+            // The following line works but does not wait for completion.It immediately continues witch FinalizeDownloads -> does not work with RefreshGUI()
+
+            //await Task.Run( () => Parallel.ForEach<(YouTubeVideo, string, string)>(vidsWithPathsAndLinks, async (media) => await DownloadVideosParallel(media, CancellationToken.None)));
+
             List<Task> tasks = new List<Task>();
 
-            foreach ((YouTubeVideo, string,string) media in vidsWithPathsAndLinks)
+            foreach ((YouTubeVideo, string, string) media in vidsWithPathsAndLinks)
             {
                 tasks.Add(DownloadVideosParallel(media, CancellationToken.None));
             }
@@ -268,14 +275,12 @@ namespace YoutubeDownloader
 
         private async Task WriteFileToDrive((YouTubeVideo, string, string) media,Stream stream, CancellationToken cts)
         {
-
-            //Equality starts here
             var client = new HttpClient();
 
             long? totalByte;
             using (var request = new HttpRequestMessage(HttpMethod.Head, media.Item1.Uri))
             {
-                totalByte = client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength;
+                totalByte = await Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength);
             }
 
             using var input = await client.GetStreamAsync(media.Item1.Uri, cts);
@@ -313,7 +318,6 @@ namespace YoutubeDownloader
                     throw;
                 }
             }
-            //Equality ends here
         }
 
 
@@ -323,7 +327,6 @@ namespace YoutubeDownloader
         {
             YouTube youtube = YouTube.Default;
             IEnumerable<YouTubeVideo> allVids = await Task.Run(() => youtube.GetAllVideosAsync(mediaToBeLoaded), cts);
-            cts.ThrowIfCancellationRequested();
 
             // Decide whether audio or video file is loaded.
             if ((bool)Audio.IsChecked)

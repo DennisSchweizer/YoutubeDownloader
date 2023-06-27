@@ -163,19 +163,19 @@
         <Button
             Name="PauseDownload"
             Width="79"
-            Margin="536,144,0,0"
+            Margin="536,172,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="OnPauseClicked"
             Content="Pause"
             IsEnabled="False"
-            Visibility="Hidden"/>
+            Visibility="Hidden" />
         <Button
             Name="ParallelDownload"
-            Margin="408,144,0,0"
+            Margin="457,141,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="ParallelDownload_Click"
-            Content="Paralleler Download" />
+            Content="Paralleler Download" Width="158" />
     </Grid>
 </Window>

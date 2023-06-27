@@ -20,10 +20,10 @@ ToDos:
 - [x] add percentage label for single download 
 - [x] refactor and split whole project
 - [x] show estimated duration of downloads
-- [x] implement pause button
+- [] implement pause button
 - [] improve controls -> scaling windows
 - [] add age verification fix
-- [] implement parallel downloads
+- [x] implement parallel downloads
 - [] split GUI functions from basic functions
 - [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started

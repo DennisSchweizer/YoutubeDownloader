@@ -38,6 +38,7 @@ namespace YoutubeDownloader
         readonly Stopwatch sw = new Stopwatch();
         List<(YouTubeVideo, string, string)> videosToBeRemovedIfCanceledList = new();
         Stream streamForSequentialDownload;
+        (YouTubeVideo, string, string) largestMedium;
 
 
         #endregion
@@ -266,6 +267,10 @@ namespace YoutubeDownloader
 
             videosToBeRemovedIfCanceledList = concurrentVids.ToList();
 
+            // Get index of element with maximum content length
+            // for this video only refresh the gui if (media == concurrentVids[indexOfElementWithMaxContent])
+            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.ContentLength);
+
             await Parallel.ForEachAsync(concurrentVids, async (media, _) =>
             {
                 await DownloadVideosParallel(media, cancellationToken.Token);
@@ -331,10 +336,12 @@ namespace YoutubeDownloader
                     }
                 }
 
+                // using dispatcher for refeshing GUI here
                 //PauseDownload.Content = "Pause";
                 //pausePressed = false;
             }
 
+            // Might be unnecessary since the stream will be closed in WriteFileToDrive()
             //await DisposeAndCloseStream(output);
 
         }
@@ -404,6 +411,19 @@ namespace YoutubeDownloader
                             // Refresh estimated remaining time and duration
                             TimeSpan duration = sw.Elapsed;
                             Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
+                            if (media == largestMedium)
+                            {
+                                // Refresh progress percenatge label
+                                double currentProgress = totalRead / (double)totalByte * 100;
+                                DownloadingIndicatorBar.Value = currentProgress;
+                                CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
+                                taskbar.SetProgressValue(totalRead, (int)totalByte);
+
+                                // Refresh estimated remaining time and duration
+                                double bytesLeft = ((double)totalByte - totalRead);
+                                TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
+                                EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
+                            }
                         });
                     }
 

@@ -15,6 +15,8 @@ using Microsoft.WindowsAPICodePack.Taskbar;
 using System.Collections.Concurrent;
 using System.Windows.Threading;
 
+
+
 namespace YoutubeDownloader
 {
 
@@ -34,7 +36,7 @@ namespace YoutubeDownloader
         bool pausePressed = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         readonly Stopwatch sw = new Stopwatch();
-
+        List<(YouTubeVideo, string, string)> videosToBeRemovedIfCanceledList = new();
         Stream streamForSequentialDownload;
 
 
@@ -259,9 +261,14 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.Normal);
             taskbar.SetProgressValue(0, concurrentVids.Count);
 
+            (YouTubeVideo, string, string)[] videosToBeRemovedIfCanceled = new(YouTubeVideo, string, string)[concurrentVids.Count];
+
+
+            videosToBeRemovedIfCanceledList = concurrentVids.ToList();
+
             await Parallel.ForEachAsync(concurrentVids, async (media, _) =>
             {
-                await DownloadVideosParallel(media, CancellationToken.None);
+                await DownloadVideosParallel(media, cancellationToken.Token);
                 downloadedVideos++;
                 await Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -269,7 +276,7 @@ namespace YoutubeDownloader
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {concurrentVids.Count} Dateien";
                     taskbar.SetProgressValue((int)downloadedVideos, concurrentVids.Count);
                 }));
-
+               videosToBeRemovedIfCanceledList.Remove(media);
             });
             DownloadingIndicatorBar.IsIndeterminate = false;
 
@@ -294,11 +301,41 @@ namespace YoutubeDownloader
         {
 
             // There needs to be a single stream for each parallel download otherwise it could cause problems
-            Stream output = await Task.Run(()=>File.OpenWrite(media.Item2));
+            Stream output = await Task.Run(() => File.OpenWrite(media.Item2));
 
-            await WriteFileToDrive(media, output, false, cts);
+            try
+            {
+                await WriteFileToDrive(media, output, false, cts);
+            }
+            catch (OperationCanceledException)
+            {
+                // Remove unnecessary data from memory
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
 
-            await DisposeAndCloseStream(output);
+                cancellationToken = new CancellationTokenSource();
+
+                // If this messagebox is not integrated the file stream cannot be deleted if the download is canceled
+                taskbar.SetProgressState(TaskbarProgressBarState.Paused);
+                taskbar.SetProgressValue(100, 100);
+                System.Windows.MessageBox.Show($"Alle Downloads wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
+                //CurrentDownload.Text = "Aktueller Download: ";
+                //DownloadProgress.Foreground = Brushes.Yellow;
+                await DisposeAndCloseStream(output);
+                // Download was started and file did not exist before current download session
+                foreach ((YouTubeVideo, string, string) downloadToBeCanceled in videosToBeRemovedIfCanceledList)
+                {
+                    if (File.Exists(downloadToBeCanceled.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
+                    {
+                        File.Delete(downloadToBeCanceled.Item2);
+                    }
+                }
+
+                //PauseDownload.Content = "Pause";
+                //pausePressed = false;
+            }
+
+            //await DisposeAndCloseStream(output);
 
         }
 
@@ -378,6 +415,7 @@ namespace YoutubeDownloader
                     throw;
                 }
             }
+            await DisposeAndCloseStream(stream);
         }
 
 

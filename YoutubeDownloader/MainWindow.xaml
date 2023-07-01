@@ -168,14 +168,15 @@
             VerticalAlignment="Top"
             Click="OnPauseClicked"
             Content="Pause"
-            IsEnabled="False"
-            Visibility="Hidden" />
+            IsEnabled="false"
+            Visibility="hidden" />
         <Button
             Name="ParallelDownload"
+            Width="158"
             Margin="457,141,0,0"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             Click="ParallelDownload_Click"
-            Content="Paralleler Download" Width="158" />
+            Content="Paralleler Download" />
     </Grid>
 </Window>

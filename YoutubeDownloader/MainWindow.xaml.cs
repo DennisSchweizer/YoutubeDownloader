@@ -31,9 +31,11 @@ namespace YoutubeDownloader
         #region Properties / Global variables
 
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
+
+        //CancellationTokenSource pauseTokenSource = new CancellationTokenSource();
         bool cancelCurrentDownload = false;
         bool cancelAllDownloads = false;
-        bool pausePressed = false;
+        //bool pausePressed = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         readonly Stopwatch sw = new Stopwatch();
         Stream streamForSequentialDownload;
@@ -67,21 +69,20 @@ namespace YoutubeDownloader
             }
 
         }
-        private void OnPauseClicked(object sender, RoutedEventArgs e)
-        {
-            if (!pausePressed)
-            {
-                PauseDownload.Content = "Fortsetzen";
-                
-
-            }
-            else
-            {
-                PauseDownload.Content = "Pause";
-            }
-            pausePressed = !pausePressed;
-
-        }
+        //private void OnPauseClicked(object sender, RoutedEventArgs e)
+        //{
+        //    if (!pausePressed)
+        //    {
+        //        PauseDownload.Content = "Fortsetzen";
+        //        pausePressed = true;
+        //    }
+        //    else
+        //    {
+        //        PauseDownload.Content = "Pause";
+        //        pausePressed = false;
+        //        pauseTokenSource.Cancel();
+        //    }
+        //}
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
         {
             using var fbd = new FolderBrowserDialog();
@@ -361,13 +362,11 @@ namespace YoutubeDownloader
             }
             catch (HttpRequestException)
             {
-                await Task.Delay(3000);
+                await Task.Delay(3000, cts);
                 goto AwaitStreamAgain;
             }
 
-
             using Stream input = stream1;
-            //using Stream input = await client.GetStreamAsync(media.Item1.Uri, cts);
             byte[] buffer = new byte[16 * 1024];
             int read;
             int totalRead = 0;
@@ -491,8 +490,8 @@ namespace YoutubeDownloader
             {
                 File.Delete(video.Item2);
             }
-            PauseDownload.Content = "Pause";
-            pausePressed = false;
+            //PauseDownload.Content = "Pause";
+            //pausePressed = false;
         }
 
         private string GenerateFullFileName(YouTubeVideo video)
@@ -537,22 +536,9 @@ namespace YoutubeDownloader
                     {
                         indicesToBeDownloaded.Add(i);
 
-
                         //Backup copy if file is unintentionally overwritten
-                        string backupFolder = Path.GetTempPath() + "YoutubeDownloaderBackup";
-                        string fileName = videosWithPaths[i].Item2[videosWithPaths[i].Item2.LastIndexOf('\\')..];
-                        if (!Path.Exists(backupFolder))
-                        {
-                            Directory.CreateDirectory(backupFolder);
-                        }
-                        
-                        if (!File.Exists(backupFolder + fileName))
-                        {
-                            File.Copy(videosWithPaths[i].Item2, backupFolder + fileName);
-                        }
-                        
-                    }
-                    
+                        CreateBackUpForDownloadedFiles(videosWithPaths[i].Item2);
+                    } 
                 }
                 else
                 {
@@ -562,6 +548,22 @@ namespace YoutubeDownloader
             return indicesToBeDownloaded;
         }
 
+
+        private void CreateBackUpForDownloadedFiles(string downloadTargetDirectory)
+        {
+            //Backup copy if file is unintentionally overwritten
+            string backupFolder = Path.GetTempPath() + "YoutubeDownloaderBackup";
+            string fileName = downloadTargetDirectory[downloadTargetDirectory.LastIndexOf('\\')..];
+            if (!Path.Exists(backupFolder))
+            {
+                Directory.CreateDirectory(backupFolder);
+            }
+
+            if (!File.Exists(backupFolder + fileName))
+            {
+                File.Copy(downloadTargetDirectory, backupFolder + fileName);
+            }
+        }
 
         private async Task<List<YouTubeVideo>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
         {

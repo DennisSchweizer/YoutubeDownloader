@@ -250,11 +250,11 @@ namespace YoutubeDownloader
 
             List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
-            ConcurrentBag<(YouTubeVideo, string, string)> concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>();
-            foreach((YouTubeVideo, string, string) element in vidsWithPathsAndLinks)
+            if(vidsWithPathsAndLinks.Count == 0)
             {
-                concurrentVids.Add(element);
+                FinalizeDownloads();
             }
+            ConcurrentBag<(YouTubeVideo, string, string)> concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>(vidsWithPathsAndLinks);
 
             // used in order to get largest donwload and use it as estimation for whole download time
             largestMedium = concurrentVids.MaxBy(medium => medium.Item1.ContentLength);
@@ -264,6 +264,7 @@ namespace YoutubeDownloader
             ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {concurrentVids.Count} Dateien";
             taskbar.SetProgressState(TaskbarProgressBarState.Normal);
             taskbar.SetProgressValue(0, concurrentVids.Count);
+
             sw.Reset();
             sw.Start();
 
@@ -321,7 +322,6 @@ namespace YoutubeDownloader
                 {
                     File.Delete(media.Item2);
                 }
-
             }
         }
 
@@ -578,12 +578,12 @@ namespace YoutubeDownloader
 
         private static List<string> FilterForYoutubeLinks(string textToBeFiltered)
         {
-            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts).*");
+            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts)\S*");
             MatchCollection matches = youtubePattern.Matches(textToBeFiltered);
 
-            //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list
-            List<string> videosToBeDownloaded = matches.Cast<Match>().Select(item => item.Value).ToHashSet<string>().ToList();
-            return videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n')).ToList();
+            //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list 
+            List<string> videosToBeDownloaded = matches.Cast<Match>().Select(item => item.Value.Trim('\r').Trim('\n').Trim(' ')).ToHashSet<string>().ToList();
+            return videosToBeDownloaded = videosToBeDownloaded.Select(element => element = element.Trim('\r').Trim('\n').Trim(' ')).ToHashSet<string>().ToList();
         }
         #endregion
 

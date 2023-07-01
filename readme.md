@@ -22,7 +22,7 @@ ToDos:
 - [x] implement parallel downloads
 - [] implement pause button
 - [] refactor and try to merge functionalitites of parallel and sequential download
-- [] create backup in temp if download did already exist and if it will be overwritten -> if download is canceled restore old version, else delete backup
+- [x] create backup in temp if download did already exist and if it will be overwritten
 - [] improve controls -> scaling windows
 - [] add age verification fix
 - [] split GUI functions from basic functions

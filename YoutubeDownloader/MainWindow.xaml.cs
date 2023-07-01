@@ -253,7 +253,9 @@ namespace YoutubeDownloader
             if(vidsWithPathsAndLinks.Count == 0)
             {
                 FinalizeDownloads();
+                return;
             }
+
             ConcurrentBag<(YouTubeVideo, string, string)> concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>(vidsWithPathsAndLinks);
 
             // used in order to get largest donwload and use it as estimation for whole download time
@@ -534,8 +536,23 @@ namespace YoutubeDownloader
                     if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
                     {
                         indicesToBeDownloaded.Add(i);
-                    }
 
+
+                        //Backup copy if file is unintentionally overwritten
+                        string backupFolder = Path.GetTempPath() + "YoutubeDownloaderBackup";
+                        string fileName = videosWithPaths[i].Item2[videosWithPaths[i].Item2.LastIndexOf('\\')..];
+                        if (!Path.Exists(backupFolder))
+                        {
+                            Directory.CreateDirectory(backupFolder);
+                        }
+                        
+                        if (!File.Exists(backupFolder + fileName))
+                        {
+                            File.Copy(videosWithPaths[i].Item2, backupFolder + fileName);
+                        }
+                        
+                    }
+                    
                 }
                 else
                 {

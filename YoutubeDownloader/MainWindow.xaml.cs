@@ -31,11 +31,8 @@ namespace YoutubeDownloader
         #region Properties / Global variables
 
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
-
-        //CancellationTokenSource pauseTokenSource = new CancellationTokenSource();
         bool cancelCurrentDownload = false;
         bool cancelAllDownloads = false;
-        //bool pausePressed = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         readonly Stopwatch sw = new Stopwatch();
         Stream streamForSequentialDownload;
@@ -69,20 +66,7 @@ namespace YoutubeDownloader
             }
 
         }
-        //private void OnPauseClicked(object sender, RoutedEventArgs e)
-        //{
-        //    if (!pausePressed)
-        //    {
-        //        PauseDownload.Content = "Fortsetzen";
-        //        pausePressed = true;
-        //    }
-        //    else
-        //    {
-        //        PauseDownload.Content = "Pause";
-        //        pausePressed = false;
-        //        pauseTokenSource.Cancel();
-        //    }
-        //}
+
         private void BrowseSaveDirectory_Click(object sender, RoutedEventArgs e)
         {
             using var fbd = new FolderBrowserDialog();
@@ -472,13 +456,13 @@ namespace YoutubeDownloader
         private async Task HandleCanceledDownload((YouTubeVideo, string, string) video, Stream output)
         {
             await DisposeAndCloseStream(output);
+
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
 
             cancellationToken = new CancellationTokenSource();
 
-            // If this messagebox is not integrated the file stream cannot be deleted if the download is canceled
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             taskbar.SetProgressValue(100, 100);
             System.Windows.MessageBox.Show($"Der Download der Datei {video.Item2.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
@@ -490,8 +474,6 @@ namespace YoutubeDownloader
             {
                 File.Delete(video.Item2);
             }
-            //PauseDownload.Content = "Pause";
-            //pausePressed = false;
         }
 
         private string GenerateFullFileName(YouTubeVideo video)
@@ -616,7 +598,6 @@ namespace YoutubeDownloader
             BrowseSaveDirectory.IsEnabled = false;
             VideoList.IsEnabled = false;
             CancelOperation.IsEnabled = true;
-            PauseDownload.IsEnabled = true;
             DownloadingIndicatorBar.Visibility = Visibility.Visible;
             DownloadProgress.Visibility = Visibility.Visible;
             CurrentDownload.Visibility = Visibility.Visible;
@@ -636,7 +617,6 @@ namespace YoutubeDownloader
             Audio.IsEnabled = true;
             Video.IsEnabled = true;
             BrowseSaveDirectory.IsEnabled = true;
-            PauseDownload.IsEnabled = false;
             VideoList.IsEnabled = true;
             CancelOperation.IsEnabled = false;
             CancelAll.IsEnabled = false;

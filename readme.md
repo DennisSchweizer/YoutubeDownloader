@@ -1,4 +1,4 @@
-This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [libvideo by omansak](https://github.com/omansak/libvideo) and [mediatoolkit](https://github.com/AydinAdn/MediaToolkit) and wraps their functionalities in a GUI. 
+This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [libvideo by omansak](https://github.com/omansak/libvideo) and wraps its functionalities in a GUI. 
 
 ToDos:
 - [x] make download asynchronuous
@@ -18,12 +18,13 @@ ToDos:
 - [x] integrate faster custom youtube download client
 - [x] improve behavior of download progress bar if downloads are canceled 
 - [x] add percentage label for single download 
-- [x] refactor and split whole project
 - [x] show estimated duration of downloads
+- [x] implement parallel downloads
 - [] implement pause button
+- [] refactor and try to merge functionalitites of parallel and sequential download
+- [] create backup in temp if download did already exist and if it will be overwritten -> if download is canceled restore old version, else delete backup
 - [] improve controls -> scaling windows
 - [] add age verification fix
-- [x] implement parallel downloads
 - [] split GUI functions from basic functions
 - [] try to merge best audio file with best video file
 - [] handle exceptions which occur randomly if download is started

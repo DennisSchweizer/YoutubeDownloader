@@ -36,8 +36,9 @@ namespace YoutubeDownloader
         bool pausePressed = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         readonly Stopwatch sw = new Stopwatch();
-        List<(YouTubeVideo, string, string)> videosToBeRemovedIfCanceledList = new();
         Stream streamForSequentialDownload;
+
+        // For estimating remaining time with parallel downloads 
         (YouTubeVideo, string, string) largestMedium;
 
 
@@ -71,6 +72,8 @@ namespace YoutubeDownloader
             if (!pausePressed)
             {
                 PauseDownload.Content = "Fortsetzen";
+                
+
             }
             else
             {
@@ -242,35 +245,30 @@ namespace YoutubeDownloader
         {
             InitializeAppForDownloading();
 
+            // Single download cannot be cancelled if download parallel is started
+            CancelOperation.IsEnabled = false;
 
             List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
-            var concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>();
+            ConcurrentBag<(YouTubeVideo, string, string)> concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>();
             foreach((YouTubeVideo, string, string) element in vidsWithPathsAndLinks)
             {
                 concurrentVids.Add(element);
             }
 
-            // Initialize variables for progress bar
+            // used in order to get largest donwload and use it as estimation for whole download time
+            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.ContentLength);
+
+            // Initialize variables for progress bars and time labels
             uint downloadedVideos = 0;
             ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {concurrentVids.Count} Dateien";
-
+            taskbar.SetProgressState(TaskbarProgressBarState.Normal);
+            taskbar.SetProgressValue(0, concurrentVids.Count);
             sw.Reset();
             sw.Start();
 
-            DownloadingIndicatorBar.IsIndeterminate = true;
-            taskbar.SetProgressState(TaskbarProgressBarState.Normal);
-            taskbar.SetProgressValue(0, concurrentVids.Count);
 
-            (YouTubeVideo, string, string)[] videosToBeRemovedIfCanceled = new(YouTubeVideo, string, string)[concurrentVids.Count];
-
-
-            videosToBeRemovedIfCanceledList = concurrentVids.ToList();
-
-            // Get index of element with maximum content length
-            // for this video only refresh the gui if (media == concurrentVids[indexOfElementWithMaxContent])
-            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.ContentLength);
-
+            // Parallel for each or Task.WhenAll()
             await Parallel.ForEachAsync(concurrentVids, async (media, _) =>
             {
                 await DownloadVideosParallel(media, cancellationToken.Token);
@@ -281,10 +279,7 @@ namespace YoutubeDownloader
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {concurrentVids.Count} Dateien";
                     taskbar.SetProgressValue((int)downloadedVideos, concurrentVids.Count);
                 }));
-               videosToBeRemovedIfCanceledList.Remove(media);
             });
-            DownloadingIndicatorBar.IsIndeterminate = false;
-
 
 
             //List<Task> tasks = new List<Task>();
@@ -304,9 +299,8 @@ namespace YoutubeDownloader
 
         private async Task DownloadVideosParallel((YouTubeVideo, string, string) media, CancellationToken cts)
         {
-
             // There needs to be a single stream for each parallel download otherwise it could cause problems
-            Stream output = await Task.Run(() => File.OpenWrite(media.Item2));
+            Stream output = await Task.Run(() => File.OpenWrite(media.Item2), cts);
 
             try
             {
@@ -318,32 +312,17 @@ namespace YoutubeDownloader
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
 
-                cancellationToken = new CancellationTokenSource();
-
-                // If this messagebox is not integrated the file stream cannot be deleted if the download is canceled
                 taskbar.SetProgressState(TaskbarProgressBarState.Paused);
                 taskbar.SetProgressValue(100, 100);
-                System.Windows.MessageBox.Show($"Alle Downloads wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
-                //CurrentDownload.Text = "Aktueller Download: ";
-                //DownloadProgress.Foreground = Brushes.Yellow;
+
                 await DisposeAndCloseStream(output);
-                // Download was started and file did not exist before current download session
-                foreach ((YouTubeVideo, string, string) downloadToBeCanceled in videosToBeRemovedIfCanceledList)
+
+                if (File.Exists(media.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
                 {
-                    if (File.Exists(downloadToBeCanceled.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
-                    {
-                        File.Delete(downloadToBeCanceled.Item2);
-                    }
+                    File.Delete(media.Item2);
                 }
 
-                // using dispatcher for refeshing GUI here
-                //PauseDownload.Content = "Pause";
-                //pausePressed = false;
             }
-
-            // Might be unnecessary since the stream will be closed in WriteFileToDrive()
-            //await DisposeAndCloseStream(output);
-
         }
 
         #endregion
@@ -371,9 +350,22 @@ namespace YoutubeDownloader
                    bei YoutubeDownloader.MainWindow.<<ParallelDownload_Click>b__16_0>d.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile255
                    bei System.Threading.Tasks.Parallel.<>c__50`1.<<ForEachAsync>b__50_0>d.MoveNext()
                    bei YoutubeDownloader.MainWindow.<ParallelDownload_Click>d__16.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile253
-
              */
-            using var input = await client.GetStreamAsync(media.Item1.Uri, cts);
+            Stream stream1 = null;
+            AwaitStreamAgain:
+            try
+            {
+                stream1 = await client.GetStreamAsync(media.Item1.Uri, cts);
+            }
+            catch (HttpRequestException)
+            {
+                await Task.Delay(3000);
+                goto AwaitStreamAgain;
+            }
+
+
+            using Stream input = stream1;
+            //using Stream input = await client.GetStreamAsync(media.Item1.Uri, cts);
             byte[] buffer = new byte[16 * 1024];
             int read;
             int totalRead = 0;
@@ -382,15 +374,6 @@ namespace YoutubeDownloader
 
             while ((read = await input.ReadAsync(buffer, cts)) > 0)
             {
-                // Task for pausing download
-                await Task.Run(() =>
-                {
-                    while (pausePressed)
-                    {
-                        // paused
-                    }
-                }, cts);
-
                 try
                 {
                     cts.ThrowIfCancellationRequested();
@@ -411,6 +394,7 @@ namespace YoutubeDownloader
                             // Refresh estimated remaining time and duration
                             TimeSpan duration = sw.Elapsed;
                             Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
+
                             if (media == largestMedium)
                             {
                                 // Refresh progress percenatge label
@@ -444,21 +428,18 @@ namespace YoutubeDownloader
         private async Task<YouTubeVideo> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
         {
             YouTube youtube = YouTube.Default;
-            /*System.Net.Http.HttpRequestException
-  HResult=0x80131500
-  Nachricht = Response status code does not indicate success: 303 (See Other).
-  Quelle = System.Net.Http
-  Stapelüberwachung:
-   bei System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
-   bei System.Net.Http.HttpClient.<GetStringAsyncCore>d__41.MoveNext()
-   bei VideoLibrary.YouTube.<GetAllVideosAsync>d__6.MoveNext()
-   bei VideoLibrary.ServiceBase`1.<GetAllVideosAsync>d__7.MoveNext()
-   bei YoutubeDownloader.MainWindow.<GetMediaInformation>d__19.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile377
-   bei YoutubeDownloader.MainWindow.<YouTubeVideosToBeLoaded>d__26.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile489
-   bei YoutubeDownloader.MainWindow.<GenerateListOfDownloads>d__20.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile397
-   bei YoutubeDownloader.MainWindow.<ParallelDownload_Click>d__16.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile243
-*/
-            IEnumerable<YouTubeVideo> allVids = await Task.Run(() => youtube.GetAllVideosAsync(mediaToBeLoaded), cts);
+            IEnumerable<YouTubeVideo> allVids = null;
+
+            TryAgain: 
+            try
+            {
+                 allVids = await Task.Run(() => youtube.GetAllVideosAsync(mediaToBeLoaded), cts);
+            }
+            catch(HttpRequestException)
+            {
+                await Task.Delay(3000, CancellationToken.None);
+                goto TryAgain;
+            }
 
             // Decide whether audio or video file is loaded.
             if ((bool)Audio.IsChecked)

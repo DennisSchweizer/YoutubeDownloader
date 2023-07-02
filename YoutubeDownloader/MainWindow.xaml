@@ -107,9 +107,9 @@
             Width="605"
             Margin="10,175,0,126"
             HorizontalAlignment="Left"
-            Text="Aktueller Download: "
+            Text=""
             TextWrapping="Wrap"
-            Visibility="Visible" />
+            Visibility="Hidden" />
         <ProgressBar
             Name="DownloadingIndicatorBar"
             Width="605"

@@ -36,6 +36,7 @@ namespace YoutubeDownloader
         readonly Stopwatch sw = new Stopwatch();
         Stream streamForSequentialDownload;
 
+        List<string> invalidYouTubeLinks = new List<string>();
         // For estimating remaining time with parallel downloads 
         (YouTubeVideo, string, string) largestMedium;
 
@@ -98,7 +99,8 @@ namespace YoutubeDownloader
         private async void DownloadList_Click(object sender, RoutedEventArgs e)
         {
             InitializeAppForDownloading();
-
+            DownloadList.Content = "Download läuft...";
+            CurrentDownload.Visibility = Visibility.Visible;
             List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
 
@@ -111,7 +113,7 @@ namespace YoutubeDownloader
             {
                 sw.Reset();
 
-                CurrentDownload.Text += $" {video.Item3.ReplaceLineEndings(string.Empty)}";
+                CurrentDownload.Text += $"{video.Item3.ReplaceLineEndings(string.Empty)}";
 
                 try
                 {
@@ -146,12 +148,13 @@ namespace YoutubeDownloader
 
  
                 // Remove current download text from label 
-                CurrentDownload.Text = CurrentDownload.Text.Replace($" {video.Item3.ReplaceLineEndings(string.Empty)}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"{video.Item3.ReplaceLineEndings(string.Empty)}", string.Empty);
 
                 // Remove unnecessary data from memory
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
             }
+            CurrentDownload.Visibility = Visibility.Hidden;
             FinalizeDownloads();
         }
 
@@ -159,7 +162,7 @@ namespace YoutubeDownloader
         {   
             try
             {
-                CurrentDownload.Text += $" \nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}";
+                CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}";
 
                 await Task.WhenAny(DownloadVideo(mediaToBeLoaded, cts), Task.Run(() =>
                 {
@@ -182,7 +185,7 @@ namespace YoutubeDownloader
                 
             }
 
-            catch (VideoLibrary.Exceptions.UnavailableStreamException ex)
+            catch (UnavailableStreamException ex)
             {
                 if (ex.Message.Contains("Alter"))
                 {
@@ -209,7 +212,7 @@ namespace YoutubeDownloader
             finally
             {
                 taskbar.SetProgressValue(0, 100);
-                CurrentDownload.Text = CurrentDownload.Text.Replace($" \nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"\nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}", string.Empty);
             }
         }
 
@@ -228,6 +231,7 @@ namespace YoutubeDownloader
         private async void ParallelDownload_Click(object sender, RoutedEventArgs e)
         {
             InitializeAppForDownloading();
+            ParallelDownload.Content = "Download läuft...";
 
             // Single download cannot be cancelled if download parallel is started
             CancelOperation.IsEnabled = false;
@@ -279,6 +283,7 @@ namespace YoutubeDownloader
 
 
             sw.Stop();
+            ParallelDownload.Content = "Paralleler Download";
             FinalizeDownloads();
         }
 
@@ -451,8 +456,11 @@ namespace YoutubeDownloader
         {
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
 
-            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
+            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded( videosToBeDownloaded);
             List<string> paths = GenerateFullFileNameList(vids);
+
+            videosToBeDownloaded= videosToBeDownloaded.Where(link => !invalidYouTubeLinks.Contains(link)).ToList();
+
             List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = vids.Zip(paths, videosToBeDownloaded).ToList();
 
             List<int> remainingElements = CheckForAlreadyLoadedFile(vidsWithPathsAndLinks);
@@ -473,9 +481,8 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             taskbar.SetProgressValue(100, 100);
             System.Windows.MessageBox.Show($"Der Download der Datei {video.Item2.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
-            CurrentDownload.Text = "Aktueller Download: ";
             DownloadProgress.Foreground = Brushes.Yellow;
-
+            CurrentDownload.Text = string.Empty;
             // Download was started and file did not exist before current download session
             if (File.Exists(video.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
             {
@@ -554,7 +561,7 @@ namespace YoutubeDownloader
             }
         }
 
-        private async Task<List<YouTubeVideo>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
+        private async Task<List<YouTubeVideo>> YouTubeVideosToBeLoaded( List<string> youTubeLinks)
         {
             List<YouTubeVideo> youTubeVideosToBeLoaded = new List<YouTubeVideo>();
             foreach (string video in youTubeLinks)
@@ -565,6 +572,10 @@ namespace YoutubeDownloader
                 if(youTubeVideo != null)
                 {
                     youTubeVideosToBeLoaded.Add(youTubeVideo);
+                }
+                else
+                {
+                    invalidYouTubeLinks.Add(video);
                 }
             }
 
@@ -635,6 +646,10 @@ namespace YoutubeDownloader
             DownloadProgress.Value = 100;
 
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
+            CurrentDownload.Visibility = Visibility.Hidden;
+            CurrentDownload.Text = "";
+            ParallelDownload.Content = "Paralleler Download";
+            DownloadList.Content = "Dateien herunterladen";
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
             taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);

@@ -14,8 +14,7 @@ using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
 using System.Collections.Concurrent;
 using System.Windows.Threading;
-
-
+using VideoLibrary.Exceptions;
 
 namespace YoutubeDownloader
 {
@@ -426,17 +425,25 @@ namespace YoutubeDownloader
                 goto TryAgain;
             }
 
-            // Decide whether audio or video file is loaded.
-            if ((bool)Audio.IsChecked)
+            try
             {
-                allVids = allVids.Where((singleVideo) => singleVideo.AudioFormat == AudioFormat.Aac && singleVideo.AdaptiveKind == AdaptiveKind.Audio);
-                return allVids.MaxBy((singleVid) => singleVid.AudioBitrate);
-            }
+                // Decide whether audio or video file is loaded.
+                if ((bool)Audio.IsChecked)
+                {
+                    allVids = allVids.Where((singleVideo) => singleVideo.AudioFormat == AudioFormat.Aac && singleVideo.AdaptiveKind == AdaptiveKind.Audio);
+                    return allVids.MaxBy((singleVid) => singleVid.AudioBitrate);
+                }
 
-            else
+                else
+                {
+                    allVids = allVids.Where((singleVideo) => singleVideo.Format == VideoFormat.Mp4 && singleVideo.AdaptiveKind == AdaptiveKind.Video && singleVideo.AudioFormat != AudioFormat.Unknown);
+                    return allVids.MaxBy((singleVid) => singleVid.Resolution);
+                }
+            }
+            catch(UnavailableStreamException ex)
             {
-                allVids = allVids.Where((singleVideo) => singleVideo.Format == VideoFormat.Mp4 && singleVideo.AdaptiveKind == AdaptiveKind.Video && singleVideo.AudioFormat != AudioFormat.Unknown);
-                return allVids.MaxBy((singleVid) => singleVid.Resolution);
+                System.Windows.Forms.MessageBox.Show($"Zugriff auf das Video nicht möglich. Ursache kann ein falscher Link oder eine Altersbeschränkung sein.\n{ex.Message}", "Fehler", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
+                return null;
             }
         }
 
@@ -553,7 +560,12 @@ namespace YoutubeDownloader
             foreach (string video in youTubeLinks)
             {
                 YouTubeVideo youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
-                youTubeVideosToBeLoaded.Add(youTubeVideo);
+
+                // youTubeVideo can become null if an age restricted video is in the download list or an broken link
+                if(youTubeVideo != null)
+                {
+                    youTubeVideosToBeLoaded.Add(youTubeVideo);
+                }
             }
 
             return youTubeVideosToBeLoaded;

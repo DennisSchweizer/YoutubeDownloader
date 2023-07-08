@@ -168,5 +168,6 @@
             VerticalAlignment="Top"
             Click="ParallelDownload_Click"
             Content="Paralleler Download" />
+        <Slider Name="MaxParallelDownloads" HorizontalAlignment="Left" Margin="553,82,0,0" VerticalAlignment="Top" Maximum="8" Minimum="-1" IsSnapToTickEnabled="True" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" Value="-1" Width="62" ValueChanged="MaxParallelDownloads_ValueChanged"/>
     </Grid>
 </Window>

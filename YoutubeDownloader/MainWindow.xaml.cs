@@ -36,7 +36,9 @@ namespace YoutubeDownloader
         readonly Stopwatch sw = new Stopwatch();
         Stream streamForSequentialDownload;
 
+        // If youtube videos cannot be accessed they need to be removed otherwise wrong links for a download may be shown
         List<string> invalidYouTubeLinks = new List<string>();
+
         // For estimating remaining time with parallel downloads 
         (YouTubeVideo, string, string) largestMedium;
 
@@ -260,7 +262,9 @@ namespace YoutubeDownloader
 
 
             // Parallel for each or Task.WhenAll()
-            await Parallel.ForEachAsync(concurrentVids, async (media, _) =>
+            // MaxDegreeOfParallelism = 7 since laptop has 8 cores, leave 1 core alone
+            var maxDegreeOfParallelism = new ParallelOptions() { MaxDegreeOfParallelism = (int) MaxParallelDownloads.Value };
+            await Parallel.ForEachAsync(concurrentVids, maxDegreeOfParallelism, async (media, _) =>
             {
                 await DownloadVideosParallel(media, cancellationToken.Token);
                 downloadedVideos++;
@@ -657,5 +661,13 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
         #endregion
+
+        private void MaxParallelDownloads_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (MaxParallelDownloads.Value == 0)
+            {
+                MaxParallelDownloads.Value = -1;
+            }
+        }
     }
 }

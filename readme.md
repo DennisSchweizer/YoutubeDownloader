@@ -1,6 +1,14 @@
 This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [libvideo by omansak](https://github.com/omansak/libvideo) and wraps its functionalities in a GUI. 
 
 ToDos:
+- [] implement pause button
+- [] refactor and try to merge functionalitites of parallel and sequential download
+- [] improve controls -> scaling windows
+- [] add age verification fix
+- [] split GUI functions from basic functions
+- [] try to merge best audio file with best video file
+
+Done:
 - [x] make download asynchronuous
 - [X] paste link from Clipboard if clicked on textbox
 - [x] validate content of textbox
@@ -20,11 +28,5 @@ ToDos:
 - [x] add percentage label for single download 
 - [x] show estimated duration of downloads
 - [x] implement parallel downloads
-- [] implement pause button
-- [] refactor and try to merge functionalitites of parallel and sequential download
 - [x] create backup in temp if download did already exist and if it will be overwritten
-- [] improve controls -> scaling windows
-- [] add age verification fix
-- [] split GUI functions from basic functions
-- [] try to merge best audio file with best video file
-- [] handle exceptions which occur randomly if download is started
+- [x] handle exceptions which occur randomly if download is started

@@ -1,10 +1,9 @@
-This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [libvideo by omansak](https://github.com/omansak/libvideo) and wraps its functionalities in a GUI. 
+This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [YoutubeExplode by Tyrrrz](https://github.com/Tyrrrz/YoutubeExplode)) and wraps its functionalities in a GUI. 
 
 ToDos:
 - [] implement pause button
 - [] refactor and try to merge functionalitites of parallel and sequential download
 - [] improve controls -> scaling windows
-- [] add age verification fix
 - [] split GUI functions from basic functions
 - [] try to merge best audio file with best video file
 
@@ -30,3 +29,4 @@ Done:
 - [x] implement parallel downloads
 - [x] create backup in temp if download did already exist and if it will be overwritten
 - [x] handle exceptions which occur randomly if download is started
+- [x] add age verification fix -> fixed by integrating YoutubeExplode

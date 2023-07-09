@@ -36,7 +36,6 @@ namespace YoutubeDownloader
         bool cancelAllDownloads = false;
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
         readonly Stopwatch sw = new Stopwatch();
-        Stream streamForSequentialDownload;
 
         // If youtube videos cannot be accessed they need to be removed otherwise wrong links for a download may be shown
         List<string> invalidYouTubeLinks = new List<string>();
@@ -135,8 +134,6 @@ namespace YoutubeDownloader
 
                 catch (OperationCanceledException)
                 {
-
-                    await HandleCanceledDownload(video, streamForSequentialDownload);
                     // Remove unnecessary data from memory
                     GC.Collect();
                     GC.WaitForPendingFinalizers();
@@ -145,8 +142,9 @@ namespace YoutubeDownloader
                     taskbar.SetProgressValue(100, 100);
 
                     // Download was started and file did not exist before current download session
-                    if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload) /*&& output != null*/)
+                    if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload))
                     {
+                        await Task.Delay(1000); // necessary for deleting an existing file otherwise an exception will be thrown
                         try
                         {
                             File.Delete(video.path);
@@ -157,6 +155,8 @@ namespace YoutubeDownloader
                         if (cancelCurrentDownload)
                         {
                             cancelCurrentDownload = false;
+                            cancellationToken.TryReset();
+                            cancellationToken = new CancellationTokenSource();
                             continue;
                         }
                         else if (cancelAllDownloads)
@@ -170,7 +170,6 @@ namespace YoutubeDownloader
                 // Refresh progress bar for whole download process
                 finally
                 {
-                    await DisposeAndCloseStream(streamForSequentialDownload);
                     downloadedVideos++;
                     DownloadProgress.Value = downloadedVideos * 100 / (uint)vidsWithPathsAndLinks.Count;
                     ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPathsAndLinks.Count} Dateien";
@@ -183,6 +182,7 @@ namespace YoutubeDownloader
                 // Remove unnecessary data from memory
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
+                await Task.Delay(1000);
             }
             CurrentDownload.Visibility = Visibility.Hidden;
             FinalizeDownloads();
@@ -193,6 +193,7 @@ namespace YoutubeDownloader
             try
             {
                 CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.path.Split('\\').Last()}";
+                sw.Start();
 
                 await Task.WhenAny(DownloadVideo(mediaToBeLoaded, cts), Task.Run(() =>
                 {
@@ -204,6 +205,7 @@ namespace YoutubeDownloader
 
                 if (cancelCurrentDownload || cancelAllDownloads)
                 {
+
                     throw new OperationCanceledException();
                 }
 
@@ -238,8 +240,6 @@ namespace YoutubeDownloader
         {
             sw.Start();
             var youtube = new YoutubeClient();
-            //streamForSequentialDownload = File.OpenWrite(vid.Item3);
-            //await WriteFileToDrive(vid, streamForSequentialDownload, true, cts);
             await youtube.Videos.Streams.DownloadAsync(vid.streams, vid.path, null, cts);
 
         }
@@ -502,10 +502,8 @@ namespace YoutubeDownloader
         }
 
 
-        private async Task HandleCanceledDownload((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video, Stream output)
+        private async Task HandleCanceledDownload((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video)
         {
-            //await DisposeAndCloseStream(output);
-
             // Remove unnecessary data from memory
             GC.Collect();
             GC.WaitForPendingFinalizers();
@@ -547,14 +545,6 @@ namespace YoutubeDownloader
             }
             return fullFilePaths;
         }
-
-
-        private async static Task DisposeAndCloseStream(Stream output)
-        {
-           await Task.Run(()=> output?.Dispose());
-           await Task.Run(() => output?.Close());
-        }
-
 
         private List<int> CheckForAlreadyLoadedFile(List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> videosWithPaths)
         {

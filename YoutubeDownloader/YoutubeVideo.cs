@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using VideoLibrary;
+
 
 namespace YoutubeDownloader
 {
@@ -13,7 +13,6 @@ namespace YoutubeDownloader
 
         public string VideoTitle { get; set; }
 
-        public YouTube YoutubeMediaContainer { get; set; }
 
         public string MediaExtension { get; set; } = ".mp3";
 

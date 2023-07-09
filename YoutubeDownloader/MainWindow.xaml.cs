@@ -7,14 +7,15 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
-using VideoLibrary;
 using System.Text.RegularExpressions;
 using System.Net.Http;
 using System.Diagnostics;
 using Microsoft.WindowsAPICodePack.Taskbar;
 using System.Collections.Concurrent;
 using System.Windows.Threading;
-using VideoLibrary.Exceptions;
+using YoutubeExplode;
+using YoutubeExplode.Videos.Streams;
+using AngleSharp.Common;
 
 namespace YoutubeDownloader
 {
@@ -40,7 +41,7 @@ namespace YoutubeDownloader
         List<string> invalidYouTubeLinks = new List<string>();
 
         // For estimating remaining time with parallel downloads 
-        (YouTubeVideo, string, string) largestMedium;
+        (IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) largestMedium;
 
 
         #endregion
@@ -94,6 +95,14 @@ namespace YoutubeDownloader
             taskbar.SetProgressValue(100, 100);
 
         }
+
+        private void MaxParallelDownloads_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (MaxParallelDownloads.Value == 0)
+            {
+                MaxParallelDownloads.Value = -1;
+            }
+        }
         #endregion
 
         #region Sequential Download
@@ -103,7 +112,8 @@ namespace YoutubeDownloader
             InitializeAppForDownloading();
             DownloadList.Content = "Download läuft...";
             CurrentDownload.Visibility = Visibility.Visible;
-            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+
+            List<(IStreamInfo vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
 
             // Initialize variables for progress bar
@@ -111,11 +121,11 @@ namespace YoutubeDownloader
             ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPathsAndLinks.Count} Dateien";
 
 
-            foreach ((YouTubeVideo, string, string) video in vidsWithPathsAndLinks)
+            foreach ((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video in vidsWithPathsAndLinks)
             {
                 sw.Reset();
 
-                CurrentDownload.Text += $"{video.Item3.ReplaceLineEndings(string.Empty)}";
+                CurrentDownload.Text += $"{video.Item2.Url.ReplaceLineEndings(string.Empty)}";
 
                 try
                 {
@@ -160,11 +170,11 @@ namespace YoutubeDownloader
             FinalizeDownloads();
         }
 
-        private async Task DownloadYoutubeVideoAsync((YouTubeVideo, string, string) mediaToBeLoaded, CancellationToken cts)
+        private async Task DownloadYoutubeVideoAsync((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) mediaToBeLoaded, CancellationToken cts)
         {   
             try
             {
-                CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}";
+                CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.Item3.Split('\\').Last()}";
 
                 await Task.WhenAny(DownloadVideo(mediaToBeLoaded, cts), Task.Run(() =>
                 {
@@ -187,18 +197,6 @@ namespace YoutubeDownloader
                 
             }
 
-            catch (UnavailableStreamException ex)
-            {
-                if (ex.Message.Contains("Alter"))
-                {
-                    System.Windows.MessageBox.Show($"Die Altersbeschränkung kann mit dem Youtube Downloader NOCH nicht umgangen werden. {Environment.NewLine} {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                else
-                {
-                    System.Windows.MessageBox.Show("Der Link zu dem Youtube Video ist fehlerhaft oder das Video existiert nicht!", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-
             catch (HttpRequestException ex)
             {
                 if (ex.Message.Contains("403") || ex.Message.Contains("303")){
@@ -214,15 +212,17 @@ namespace YoutubeDownloader
             finally
             {
                 taskbar.SetProgressValue(0, 100);
-                CurrentDownload.Text = CurrentDownload.Text.Replace($"\nDateiname: {mediaToBeLoaded.Item2.Split('\\').Last()}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"\nDateiname: {mediaToBeLoaded.Item3.Split('\\').Last()}", string.Empty);
             }
         }
 
-        private async Task DownloadVideo((YouTubeVideo, string, string) vid, CancellationToken cts)
+        private async Task DownloadVideo((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) vid, CancellationToken cts)
         {
             sw.Start();
-            streamForSequentialDownload = File.OpenWrite(vid.Item2);
-            await WriteFileToDrive(vid, streamForSequentialDownload, true, cts);
+            var youtube = new YoutubeClient();
+            //streamForSequentialDownload = File.OpenWrite(vid.Item3);
+            //await WriteFileToDrive(vid, streamForSequentialDownload, true, cts);
+            await youtube.Videos.Streams.DownloadAsync(vid.streams, vid.path, null, cts);
         }
 
         #endregion
@@ -238,7 +238,7 @@ namespace YoutubeDownloader
             // Single download cannot be cancelled if download parallel is started
             CancelOperation.IsEnabled = false;
 
-            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
             if(vidsWithPathsAndLinks.Count == 0)
             {
@@ -246,10 +246,10 @@ namespace YoutubeDownloader
                 return;
             }
 
-            ConcurrentBag<(YouTubeVideo, string, string)> concurrentVids = new ConcurrentBag<(YouTubeVideo, string, string)>(vidsWithPathsAndLinks);
+            ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> concurrentVids = new ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)>(vidsWithPathsAndLinks);
 
             // used in order to get largest donwload and use it as estimation for whole download time
-            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.ContentLength);
+            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.Size);
 
             // Initialize variables for progress bars and time labels
             uint downloadedVideos = 0;
@@ -293,14 +293,16 @@ namespace YoutubeDownloader
 
 
 
-        private async Task DownloadVideosParallel((YouTubeVideo, string, string) media, CancellationToken cts)
+        private async Task DownloadVideosParallel((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
         {
             // There needs to be a single stream for each parallel download otherwise it could cause problems
-            Stream output = await Task.Run(() => File.OpenWrite(media.Item2), cts);
+            Stream output = await Task.Run(() => File.OpenWrite(media.Item3), cts);
 
             try
             {
-                await WriteFileToDrive(media, output, false, cts);
+                var youtubeClient = new YoutubeClient();
+                //await WriteFileToDrive(media, output, false, cts);
+                await youtubeClient.Videos.Streams.DownloadAsync(media.streams, media.path, null, cts);
             }
             catch (OperationCanceledException)
             {
@@ -313,9 +315,9 @@ namespace YoutubeDownloader
 
                 await DisposeAndCloseStream(output);
 
-                if (File.Exists(media.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
+                if (File.Exists(media.Item3) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
                 {
-                    File.Delete(media.Item2);
+                    File.Delete(media.Item3);
                 }
             }
         }
@@ -323,110 +325,111 @@ namespace YoutubeDownloader
         #endregion
 
 
-        private async Task WriteFileToDrive((YouTubeVideo, string, string) media,Stream stream, bool refreshGui, CancellationToken cts)
-        {
-            var client = new HttpClient();
+        //private async Task WriteFileToDrive((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, Stream stream, bool refreshGui, CancellationToken cts)
+        //{
+        //    var client = new HttpClient();
 
-            long? totalByte;
-            using (var request = new HttpRequestMessage(HttpMethod.Head, media.Item1.Uri))
-            {
-                totalByte = await Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength);
-            }
+        //    long? totalByte;
+        //    using (var request = new HttpRequestMessage(HttpMethod.Head, media.Item1.Uri))
+        //    {
+        //        totalByte = await Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength);
+        //    }
 
-            /*System.Net.Http.HttpRequestException
-                  HResult=0x80131500
-                  Nachricht = Response status code does not indicate success: 403 (Forbidden).
-                  Quelle = System.Net.Http
-                  Stapelüberwachung:
-                   bei System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
-                   bei System.Net.Http.HttpClient.<GetStreamAsyncCore>d__51.MoveNext()
-                   bei YoutubeDownloader.MainWindow.<WriteFileToDrive>d__18.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile300
-                   bei YoutubeDownloader.MainWindow.<DownloadVideosParallel>d__17.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile281
-                   bei YoutubeDownloader.MainWindow.<<ParallelDownload_Click>b__16_0>d.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile255
-                   bei System.Threading.Tasks.Parallel.<>c__50`1.<<ForEachAsync>b__50_0>d.MoveNext()
-                   bei YoutubeDownloader.MainWindow.<ParallelDownload_Click>d__16.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile253
-             */
-            Stream stream1 = null;
-            AwaitStreamAgain:
-            try
-            {
-                stream1 = await client.GetStreamAsync(media.Item1.Uri, cts);
-            }
-            catch (HttpRequestException)
-            {
-                await Task.Delay(3000, cts);
-                goto AwaitStreamAgain;
-            }
+        //    /*System.Net.Http.HttpRequestException
+        //          HResult=0x80131500
+        //          Nachricht = Response status code does not indicate success: 403 (Forbidden).
+        //          Quelle = System.Net.Http
+        //          Stapelüberwachung:
+        //           bei System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+        //           bei System.Net.Http.HttpClient.<GetStreamAsyncCore>d__51.MoveNext()
+        //           bei YoutubeDownloader.MainWindow.<WriteFileToDrive>d__18.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile300
+        //           bei YoutubeDownloader.MainWindow.<DownloadVideosParallel>d__17.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile281
+        //           bei YoutubeDownloader.MainWindow.<<ParallelDownload_Click>b__16_0>d.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile255
+        //           bei System.Threading.Tasks.Parallel.<>c__50`1.<<ForEachAsync>b__50_0>d.MoveNext()
+        //           bei YoutubeDownloader.MainWindow.<ParallelDownload_Click>d__16.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile253
+        //     */
+        //    Stream stream1 = null;
+        //    AwaitStreamAgain:
+        //    try
+        //    {
+        //        stream1 = await client.GetStreamAsync(media.Item1.Uri, cts);
+        //    }
+        //    catch (HttpRequestException)
+        //    {
+        //        await Task.Delay(3000, cts);
+        //        goto AwaitStreamAgain;
+        //    }
 
-            using Stream input = stream1;
-            byte[] buffer = new byte[16 * 1024];
-            int read;
-            int totalRead = 0;
-            int lastRead = 0;
-
-
-            while ((read = await input.ReadAsync(buffer, cts)) > 0)
-            {
-                try
-                {
-                    cts.ThrowIfCancellationRequested();
-
-                    await stream.WriteAsync(buffer.AsMemory(0, read), cts);
-                    lastRead = totalRead;
-                    totalRead += read;
+        //    using Stream input = stream1;
+        //    byte[] buffer = new byte[16 * 1024];
+        //    int read;
+        //    int totalRead = 0;
+        //    int lastRead = 0;
 
 
-                    if(refreshGui)
-                    {
-                        RefreshGuiCurrentDownload(totalByte, totalRead);
-                    }
-                    else
-                    {
-                        await Dispatcher.BeginInvoke(() =>
-                        {
-                            // Refresh estimated remaining time and duration
-                            TimeSpan duration = sw.Elapsed;
-                            Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
+        //    while ((read = await input.ReadAsync(buffer, cts)) > 0)
+        //    {
+        //        try
+        //        {
+        //            cts.ThrowIfCancellationRequested();
 
-                            if (media == largestMedium)
-                            {
-                                // Refresh progress percenatge label
-                                double currentProgress = totalRead / (double)totalByte * 100;
-                                DownloadingIndicatorBar.Value = currentProgress;
-                                CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
-                                taskbar.SetProgressValue(totalRead, (int)totalByte);
+        //            await stream.WriteAsync(buffer.AsMemory(0, read), cts);
+        //            lastRead = totalRead;
+        //            totalRead += read;
 
-                                // Refresh estimated remaining time and duration
-                                double bytesLeft = ((double)totalByte - totalRead);
-                                TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
-                                EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
-                            }
-                        });
-                    }
 
-                }
+        //            if(refreshGui)
+        //            {
+        //                RefreshGuiCurrentDownload(totalByte, totalRead);
+        //            }
+        //            else
+        //            {
+        //                await Dispatcher.BeginInvoke(() =>
+        //                {
+        //                    // Refresh estimated remaining time and duration
+        //                    TimeSpan duration = sw.Elapsed;
+        //                    Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
 
-                catch (OperationCanceledException)
-                {
-                    await DisposeAndCloseStream(stream);
-                    throw;
-                }
-            }
-            await DisposeAndCloseStream(stream);
-        }
+        //                    if (media == largestMedium)
+        //                    {
+        //                        // Refresh progress percenatge label
+        //                        double currentProgress = totalRead / (double)totalByte * 100;
+        //                        DownloadingIndicatorBar.Value = currentProgress;
+        //                        CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
+        //                        taskbar.SetProgressValue(totalRead, (int)totalByte);
+
+        //                        // Refresh estimated remaining time and duration
+        //                        double bytesLeft = ((double)totalByte - totalRead);
+        //                        TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
+        //                        EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
+        //                    }
+        //                });
+        //            }
+
+        //        }
+
+        //        catch (OperationCanceledException)
+        //        {
+        //            await DisposeAndCloseStream(stream);
+        //            throw;
+        //        }
+        //    }
+        //    await DisposeAndCloseStream(stream);
+        //}
 
 
         #region HelperMethods
 
-        private async Task<YouTubeVideo> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
+        private async Task<(IStreamInfo, YoutubeExplode.Videos.Video)> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
         {
-            YouTube youtube = YouTube.Default;
-            IEnumerable<YouTubeVideo> allVids = null;
+            var youtube = new YoutubeClient();
+            StreamManifest allStreamInfos;
+            YoutubeExplode.Videos.Video videoData = await youtube.Videos.GetAsync(mediaToBeLoaded, cts);
 
-            TryAgain: 
+        TryAgain: 
             try
             {
-                 allVids = await Task.Run(() => youtube.GetAllVideosAsync(mediaToBeLoaded), cts);
+                allStreamInfos = await youtube.Videos.Streams.GetManifestAsync(mediaToBeLoaded, cts);
             }
             catch(HttpRequestException)
             {
@@ -434,45 +437,48 @@ namespace YoutubeDownloader
                 goto TryAgain;
             }
 
-            try
+            IStreamInfo mediaManifest;
+            // Decide whether audio or video file is loaded.
+            if ((bool)Audio.IsChecked)
             {
-                // Decide whether audio or video file is loaded.
-                if ((bool)Audio.IsChecked)
-                {
-                    allVids = allVids.Where((singleVideo) => singleVideo.AudioFormat == AudioFormat.Aac && singleVideo.AdaptiveKind == AdaptiveKind.Audio);
-                    return allVids.MaxBy((singleVid) => singleVid.AudioBitrate);
-                }
+                // LINQ necessary because the default audio format is opus which is incompatible with mp3
+                mediaManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == Container.Mp4).GetWithHighestBitrate();
+            }
 
-                else
-                {
-                    allVids = allVids.Where((singleVideo) => singleVideo.Format == VideoFormat.Mp4 && singleVideo.AdaptiveKind == AdaptiveKind.Video && singleVideo.AudioFormat != AudioFormat.Unknown);
-                    return allVids.MaxBy((singleVid) => singleVid.Resolution);
-                }
-            }
-            catch(UnavailableStreamException ex)
+            else
             {
-                System.Windows.Forms.MessageBox.Show($"Zugriff auf das Video nicht möglich. Ursache kann ein falscher Link oder eine Altersbeschränkung sein.\n{ex.Message}", "Fehler", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
-                return null;
+                mediaManifest = allStreamInfos.GetMuxedStreams().GetWithHighestVideoQuality();
             }
+
+            return (mediaManifest, videoData);
         }
 
-        private async Task<List<(YouTubeVideo vids, string path, string link)>> GenerateListOfDownloads()
+        private async Task<List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)>> GenerateListOfDownloads()
         {
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
 
-            List<YouTubeVideo> vids = await YouTubeVideosToBeLoaded( videosToBeDownloaded);
-            List<string> paths = GenerateFullFileNameList(vids);
+
+            List<(IStreamInfo, YoutubeExplode.Videos.Video)> allMediaData = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
+            List<string> paths = GenerateFullFileNameList(allMediaData);
+
 
             videosToBeDownloaded= videosToBeDownloaded.Where(link => !invalidYouTubeLinks.Contains(link)).ToList();
 
-            List<(YouTubeVideo vids, string path, string link)> vidsWithPathsAndLinks = vids.Zip(paths, videosToBeDownloaded).ToList();
+
+            List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = new List<(IStreamInfo, YoutubeExplode.Videos.Video, string)>();
+            
+            for(int i = 0; i < allMediaData.Count; i++) { 
+            
+                (IStreamInfo, YoutubeExplode.Videos.Video, string) tripel = (allMediaData[i].Item1, allMediaData[i].Item2, paths[i]);
+                vidsWithPathsAndLinks.Add(tripel);
+            }
 
             List<int> remainingElements = CheckForAlreadyLoadedFile(vidsWithPathsAndLinks);
             return vidsWithPathsAndLinks = remainingElements.Select(index => vidsWithPathsAndLinks[index]).ToList();
         }
 
 
-        private async Task HandleCanceledDownload((YouTubeVideo, string, string) video, Stream output)
+        private async Task HandleCanceledDownload((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video, Stream output)
         {
             await DisposeAndCloseStream(output);
 
@@ -484,31 +490,32 @@ namespace YoutubeDownloader
 
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             taskbar.SetProgressValue(100, 100);
-            System.Windows.MessageBox.Show($"Der Download der Datei {video.Item2.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
+            System.Windows.MessageBox.Show($"Der Download der Datei {video.Item3.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             DownloadProgress.Foreground = Brushes.Yellow;
             CurrentDownload.Text = string.Empty;
             // Download was started and file did not exist before current download session
-            if (File.Exists(video.Item2) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
+            if (File.Exists(video.Item3) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
             {
-                File.Delete(video.Item2);
+                File.Delete(video.Item3);
             }
         }
 
-        private string GenerateFullFileName(YouTubeVideo video)
+        // Needs to be modified
+        private string GenerateFullFileName(YoutubeExplode.Videos.Video video)
         {
             // Remove invalid characters from Youtube video title -> filename
             string videoTitle = string.Join('_', video.Title.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
 
-            return (bool)Audio.IsChecked ? videoTitle + ".mp3" : videoTitle + ".mp4";
+            return (bool)Audio.IsChecked ? videoTitle  + ".mp3" : videoTitle + ".mp4";
         }
 
 
-        private List<string> GenerateFullFileNameList(List<YouTubeVideo> youTubeVideos)
+        private List<string> GenerateFullFileNameList(List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideos)
         {
             List<string> fullFilePaths = new List<string>();
             foreach (var video in youTubeVideos)
             {
-                fullFilePaths.Add(DownloadDirectory.Text + GenerateFullFileName(video));
+                fullFilePaths.Add(DownloadDirectory.Text + GenerateFullFileName(video.Item2));
             }
             return fullFilePaths;
         }
@@ -521,23 +528,23 @@ namespace YoutubeDownloader
         }
 
 
-        private List<int> CheckForAlreadyLoadedFile(List<(YouTubeVideo, string, string)> videosWithPaths)
+        private List<int> CheckForAlreadyLoadedFile(List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> videosWithPaths)
         {
             List<int> indicesToBeDownloaded = new List<int>();
             for (int i = 0; i < videosWithPaths.Count; i++)
             {
                 // Check if file name already exists in directory before downloading
-                if (File.Exists(videosWithPaths[i].Item2))
+                if (File.Exists(videosWithPaths[i].Item3))
                 {
                     taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
-                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei \n{videosWithPaths[i].Item2} \nexistiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
+                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei \n{videosWithPaths[i].Item3} \nexistiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
 
                     if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
                     {
                         indicesToBeDownloaded.Add(i);
 
                         //Backup copy if file is unintentionally overwritten
-                        CreateBackUpForDownloadedFiles(videosWithPaths[i].Item2);
+                        CreateBackUpForDownloadedFiles(videosWithPaths[i].Item3);
                     } 
                 }
                 else
@@ -565,15 +572,15 @@ namespace YoutubeDownloader
             }
         }
 
-        private async Task<List<YouTubeVideo>> YouTubeVideosToBeLoaded( List<string> youTubeLinks)
+        private async Task<List<(IStreamInfo, YoutubeExplode.Videos.Video)>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
         {
-            List<YouTubeVideo> youTubeVideosToBeLoaded = new List<YouTubeVideo>();
+            List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideosToBeLoaded = new List<(IStreamInfo, YoutubeExplode.Videos.Video)>();
             foreach (string video in youTubeLinks)
             {
-                YouTubeVideo youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
+                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
 
                 // youTubeVideo can become null if an age restricted video is in the download list or an broken link
-                if(youTubeVideo != null)
+                if(youTubeVideo.Item1 != null && youTubeVideo.Item2 != null)
                 {
                     youTubeVideosToBeLoaded.Add(youTubeVideo);
                 }
@@ -661,13 +668,5 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
         #endregion
-
-        private void MaxParallelDownloads_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (MaxParallelDownloads.Value == 0)
-            {
-                MaxParallelDownloads.Value = -1;
-            }
-        }
     }
 }

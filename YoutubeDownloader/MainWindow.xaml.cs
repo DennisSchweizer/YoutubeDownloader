@@ -125,7 +125,7 @@ namespace YoutubeDownloader
             {
                 sw.Reset();
 
-                CurrentDownload.Text += $"{video.Item2.Url.ReplaceLineEndings(string.Empty)}";
+                CurrentDownload.Text += $"{video.video.Url.ReplaceLineEndings(string.Empty)}";
 
                 try
                 {
@@ -160,7 +160,7 @@ namespace YoutubeDownloader
 
  
                 // Remove current download text from label 
-                CurrentDownload.Text = CurrentDownload.Text.Replace($"{video.Item3.ReplaceLineEndings(string.Empty)}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"{video.path.ReplaceLineEndings(string.Empty)}", string.Empty);
 
                 // Remove unnecessary data from memory
                 GC.Collect();
@@ -174,7 +174,7 @@ namespace YoutubeDownloader
         {   
             try
             {
-                CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.Item3.Split('\\').Last()}";
+                CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.path.Split('\\').Last()}";
 
                 await Task.WhenAny(DownloadVideo(mediaToBeLoaded, cts), Task.Run(() =>
                 {
@@ -212,7 +212,7 @@ namespace YoutubeDownloader
             finally
             {
                 taskbar.SetProgressValue(0, 100);
-                CurrentDownload.Text = CurrentDownload.Text.Replace($"\nDateiname: {mediaToBeLoaded.Item3.Split('\\').Last()}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"\nDateiname: {mediaToBeLoaded.path.Split('\\').Last()}", string.Empty);
             }
         }
 
@@ -249,7 +249,7 @@ namespace YoutubeDownloader
             ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> concurrentVids = new ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)>(vidsWithPathsAndLinks);
 
             // used in order to get largest donwload and use it as estimation for whole download time
-            largestMedium = concurrentVids.MaxBy(medium => medium.Item1.Size);
+            largestMedium = concurrentVids.MaxBy(medium => medium.streams.Size);
 
             // Initialize variables for progress bars and time labels
             uint downloadedVideos = 0;
@@ -296,7 +296,7 @@ namespace YoutubeDownloader
         private async Task DownloadVideosParallel((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
         {
             // There needs to be a single stream for each parallel download otherwise it could cause problems
-            Stream output = await Task.Run(() => File.OpenWrite(media.Item3), cts);
+            Stream output = await Task.Run(() => File.OpenWrite(media.path), cts);
 
             try
             {
@@ -315,9 +315,9 @@ namespace YoutubeDownloader
 
                 await DisposeAndCloseStream(output);
 
-                if (File.Exists(media.Item3) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
+                if (File.Exists(media.path) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
                 {
-                    File.Delete(media.Item3);
+                    File.Delete(media.path);
                 }
             }
         }
@@ -490,13 +490,13 @@ namespace YoutubeDownloader
 
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             taskbar.SetProgressValue(100, 100);
-            System.Windows.MessageBox.Show($"Der Download der Datei {video.Item3.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
+            System.Windows.MessageBox.Show($"Der Download der Datei {video.path.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             DownloadProgress.Foreground = Brushes.Yellow;
             CurrentDownload.Text = string.Empty;
             // Download was started and file did not exist before current download session
-            if (File.Exists(video.Item3) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
+            if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload) && output != null)
             {
-                File.Delete(video.Item3);
+                File.Delete(video.path);
             }
         }
 
@@ -534,17 +534,17 @@ namespace YoutubeDownloader
             for (int i = 0; i < videosWithPaths.Count; i++)
             {
                 // Check if file name already exists in directory before downloading
-                if (File.Exists(videosWithPaths[i].Item3))
+                if (File.Exists(videosWithPaths[i].path ))
                 {
                     taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
-                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei \n{videosWithPaths[i].Item3} \nexistiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
+                    DialogResult overwriteAlreadyDownloadedFile = System.Windows.Forms.MessageBox.Show($"Die Datei \n{videosWithPaths[i].path} \nexistiert bereits. Soll der Download übersprungen werden?", "Datei existiert bereits!", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, System.Windows.Forms.MessageBoxOptions.DefaultDesktopOnly);
 
                     if (overwriteAlreadyDownloadedFile == System.Windows.Forms.DialogResult.No)
                     {
                         indicesToBeDownloaded.Add(i);
 
                         //Backup copy if file is unintentionally overwritten
-                        CreateBackUpForDownloadedFiles(videosWithPaths[i].Item3);
+                        CreateBackUpForDownloadedFiles(videosWithPaths[i].path);
                     } 
                 }
                 else
@@ -556,7 +556,7 @@ namespace YoutubeDownloader
         }
 
 
-        private void CreateBackUpForDownloadedFiles(string downloadTargetDirectory)
+        private static void CreateBackUpForDownloadedFiles(string downloadTargetDirectory)
         {
             //Backup copy if file is unintentionally overwritten
             string backupFolder = Path.GetTempPath() + "YoutubeDownloaderBackup";

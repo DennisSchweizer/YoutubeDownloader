@@ -38,7 +38,7 @@ namespace YoutubeDownloader
         readonly Stopwatch sw = new Stopwatch();
 
         // If youtube videos cannot be accessed they need to be removed otherwise wrong links for a download may be shown
-        List<string> invalidYouTubeLinks = new List<string>();
+        readonly List<string> invalidYouTubeLinks = new List<string>();
 
         // For estimating remaining time with parallel downloads 
         (IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) largestMedium;
@@ -134,36 +134,19 @@ namespace YoutubeDownloader
 
                 catch (OperationCanceledException)
                 {
-                    // Remove unnecessary data from memory
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
+                    await HandleCanceledDownload(video);
 
-                    taskbar.SetProgressState(TaskbarProgressBarState.Paused);
-                    taskbar.SetProgressValue(100, 100);
-
-                    // Download was started and file did not exist before current download session
-                    if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload))
+                    if (cancelCurrentDownload)
                     {
-                        await Task.Delay(1000); // necessary for deleting an existing file otherwise an exception will be thrown
-                        try
-                        {
-                            File.Delete(video.path);
-                            Debug.WriteLine($"Die Datei {video.path} wurde gelöscht!");
-                        }
-                        catch (IOException) { Debug.WriteLine("Den hab ich gefangen!");/*For now exception will be caught since DownloadAsync is not cancelled right now*/ }
-
-                        if (cancelCurrentDownload)
-                        {
-                            cancelCurrentDownload = false;
-                            cancellationToken.TryReset();
-                            cancellationToken = new CancellationTokenSource();
-                            continue;
-                        }
-                        else if (cancelAllDownloads)
-                        {
-                            cancelAllDownloads = false;
-                            break;
-                        }
+                        cancelCurrentDownload = false;
+                        cancellationToken.TryReset();
+                        cancellationToken = new CancellationTokenSource();
+                        continue;
+                    }
+                    else if (cancelAllDownloads)
+                    {
+                        cancelAllDownloads = false;
+                        break;
                     }
                 }
 
@@ -314,35 +297,14 @@ namespace YoutubeDownloader
 
         private async Task DownloadVideosParallel((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
         {
-            // There needs to be a single stream for each parallel download otherwise it could cause problems
-            //Stream output = await Task.Run(() => File.OpenWrite(media.path), cts);
-
             try
             {
                 var youtubeClient = new YoutubeClient();
-                //await WriteFileToDrive(media, output, false, cts);
                 await youtubeClient.Videos.Streams.DownloadAsync(media.streams, media.path, null, cts);
             }
             catch (OperationCanceledException)
             {
-                // Remove unnecessary data from memory
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-
-                taskbar.SetProgressState(TaskbarProgressBarState.Paused);
-                taskbar.SetProgressValue(100, 100);
-
-                // Download was started and file did not exist before current download session
-                if (File.Exists(media.path) && (cancelAllDownloads || cancelCurrentDownload) /*&& output != null*/)
-                {
-                    try
-                    {
-                        File.Delete(media.path);
-                        Debug.WriteLine($"Die Datei {media.path} wurde gelöscht!");
-                    }
-                    catch (IOException) { Debug.WriteLine("Den hab ich gefangen!");/*For now exception will be caught since DownloadAsync is not cancelled right now*/ }
-                }
-
+                await HandleCanceledDownload(media);
             }
         }
 
@@ -358,19 +320,6 @@ namespace YoutubeDownloader
         //    {
         //        totalByte = await Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength);
         //    }
-
-        //    /*System.Net.Http.HttpRequestException
-        //          HResult=0x80131500
-        //          Nachricht = Response status code does not indicate success: 403 (Forbidden).
-        //          Quelle = System.Net.Http
-        //          Stapelüberwachung:
-        //           bei System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
-        //           bei System.Net.Http.HttpClient.<GetStreamAsyncCore>d__51.MoveNext()
-        //           bei YoutubeDownloader.MainWindow.<WriteFileToDrive>d__18.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile300
-        //           bei YoutubeDownloader.MainWindow.<DownloadVideosParallel>d__17.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile281
-        //           bei YoutubeDownloader.MainWindow.<<ParallelDownload_Click>b__16_0>d.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile255
-        //           bei System.Threading.Tasks.Parallel.<>c__50`1.<<ForEachAsync>b__50_0>d.MoveNext()
-        //           bei YoutubeDownloader.MainWindow.<ParallelDownload_Click>d__16.MoveNext() in C:\Users\Dennis\Documents\GitHub\YoutubeDownloader\YoutubeDownloader\MainWindow.xaml.cs: Zeile253
         //     */
         //    Stream stream1 = null;
         //    AwaitStreamAgain:
@@ -513,12 +462,16 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.Paused);
             taskbar.SetProgressValue(100, 100);
             System.Windows.MessageBox.Show($"Der Download der Datei {video.path.Split('\\').Last()} wurde abgebrochen!", "Abbruch!", MessageBoxButton.OK, MessageBoxImage.Exclamation,MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
-            DownloadProgress.Foreground = Brushes.Yellow;
-            CurrentDownload.Text = string.Empty;
+
+            await Dispatcher.BeginInvoke(() => {
+                DownloadProgress.Foreground = Brushes.Yellow;
+                CurrentDownload.Text = string.Empty;
+            });
 
             // Download was started and file did not exist before current download session
-            if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload) /*&& output != null*/)
+            if (File.Exists(video.path) && (cancelAllDownloads || cancelCurrentDownload))
             {
+                await Task.Delay(1000); // necessary for deleting an existing file otherwise an exception will be thrown
                 try
                 {
                     File.Delete(video.path);

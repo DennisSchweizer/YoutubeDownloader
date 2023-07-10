@@ -124,18 +124,19 @@ namespace YoutubeDownloader
             foreach ((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video in vidsWithPathsAndLinks)
             {
                 sw.Reset();
-
+                CurrentDownload.Text = "Aktueller Download: ";
                 CurrentDownload.Text += $"{video.video.Url.ReplaceLineEndings(string.Empty)}";
 
                 try
                 {
                     await DownloadYoutubeVideoAsync(video, cancellationToken.Token);
-                } // After the exception in DownloadYoutubeVideoAsync the exception is not caught on this level. Instead this methods does not go to the next element in the list
+                } 
 
                 catch (OperationCanceledException)
                 {
                     await HandleCanceledDownload(video);
 
+                    //Sepcial treatment for single download
                     if (cancelCurrentDownload)
                     {
                         cancelCurrentDownload = false;
@@ -160,7 +161,7 @@ namespace YoutubeDownloader
 
  
                 // Remove current download text from label 
-                CurrentDownload.Text = CurrentDownload.Text.Replace($"{video.path.ReplaceLineEndings(string.Empty)}", string.Empty);
+                CurrentDownload.Text = CurrentDownload.Text.Replace($"{video.video.Url.ReplaceLineEndings(string.Empty)}", string.Empty);
 
                 // Remove unnecessary data from memory
                 GC.Collect();
@@ -242,6 +243,7 @@ namespace YoutubeDownloader
 
             List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
+            // no valid Youtube video detected
             if(vidsWithPathsAndLinks.Count == 0)
             {
                 FinalizeDownloads();
@@ -269,6 +271,7 @@ namespace YoutubeDownloader
             await Parallel.ForEachAsync(concurrentVids, maxDegreeOfParallelism, async (media, _) =>
             {
                 await DownloadVideosParallel(media, cancellationToken.Token);
+
                 downloadedVideos++;
                 await Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -286,14 +289,10 @@ namespace YoutubeDownloader
             //}
             //await Task.WhenAll(tasks);
 
-
-
             sw.Stop();
             ParallelDownload.Content = "Paralleler Download";
             FinalizeDownloads();
         }
-
-
 
         private async Task DownloadVideosParallel((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
         {
@@ -465,7 +464,7 @@ namespace YoutubeDownloader
 
             await Dispatcher.BeginInvoke(() => {
                 DownloadProgress.Foreground = Brushes.Yellow;
-                CurrentDownload.Text = string.Empty;
+                CurrentDownload.Text = "Aktueller Download: ";
             });
 
             // Download was started and file did not exist before current download session
@@ -626,6 +625,8 @@ namespace YoutubeDownloader
             CancelOperation.IsEnabled = false;
             CancelAll.IsEnabled = false;
             DownloadProgress.Value = 100;
+            cancelCurrentDownload = false;
+            cancelAllDownloads = false;
 
             // Cancel running tasks (loop for cancel downloads) and create a new cancellationToken for new download sessions
             CurrentDownload.Visibility = Visibility.Hidden;
@@ -635,6 +636,8 @@ namespace YoutubeDownloader
             cancellationToken.Cancel();
             cancellationToken = new CancellationTokenSource();
             taskbar.SetProgressState(TaskbarProgressBarState.Indeterminate);
+            DownloadProgress.Value = 100;
+            ProgressIndicator.Text = $"Gesamtfortschritt: ";
             System.Windows.MessageBox.Show("Alle Vorgänge abgeschlossen!", "Download erfolgreich!", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, System.Windows.MessageBoxOptions.DefaultDesktopOnly);
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }

@@ -6,6 +6,7 @@ ToDos:
 - [] improve controls -> scaling windows
 - [] split GUI functions from basic functions
 - [] try to merge best audio file with best video file
+- [] improve progress evaluation if age restricted video is downloaded because it is much slower than larger unrestricted downloads
 
 Done:
 - [x] make download asynchronuous

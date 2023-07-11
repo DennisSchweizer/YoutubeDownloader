@@ -118,7 +118,8 @@
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             IsIndeterminate="False"
-            Visibility="Visible" />
+            Visibility="Visible"
+            />
         <TextBlock
             Name="CurrentDownloadProgressLabel"
             Margin="570,204,0,118"
@@ -168,6 +169,18 @@
             VerticalAlignment="Top"
             Click="ParallelDownload_Click"
             Content="Paralleler Download" />
-        <Slider Name="MaxParallelDownloads" HorizontalAlignment="Left" Margin="553,82,0,0" VerticalAlignment="Top" Maximum="8" Minimum="-1" IsSnapToTickEnabled="True" AutoToolTipPlacement="TopLeft" AutoToolTipPrecision="0" Value="-1" Width="62" ValueChanged="MaxParallelDownloads_ValueChanged"/>
+        <Slider
+            Name="MaxParallelDownloads"
+            Width="62"
+            Margin="553,82,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            AutoToolTipPlacement="TopLeft"
+            AutoToolTipPrecision="0"
+            IsSnapToTickEnabled="True"
+            Maximum="8"
+            Minimum="-1"
+            ValueChanged="MaxParallelDownloads_ValueChanged"
+            Value="-1" />
     </Grid>
 </Window>

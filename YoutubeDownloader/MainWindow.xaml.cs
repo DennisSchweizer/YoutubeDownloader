@@ -16,8 +16,6 @@ using System.Windows.Threading;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-
-
 namespace YoutubeDownloader
 {
 
@@ -224,13 +222,18 @@ namespace YoutubeDownloader
         {
             sw.Start();
             var youtube = new YoutubeClient();
-            await youtube.Videos.Streams.DownloadAsync(vid.streams, vid.path, null, cts);
+            Progress<double> progressHandler = null;
+            await Dispatcher.BeginInvoke(() => 
+            {
+                taskbar.SetProgressState(TaskbarProgressBarState.Normal);
+                progressHandler = new Progress<double>(p => RefreshGuiCurrentDownload(p));
+            });
+
+            await youtube.Videos.Streams.DownloadAsync(vid.streams, vid.path, progressHandler, cts);
 
         }
 
         #endregion
-
-
 
         #region Parallel Download
         private async void ParallelDownload_Click(object sender, RoutedEventArgs e)
@@ -299,7 +302,17 @@ namespace YoutubeDownloader
             try
             {
                 var youtubeClient = new YoutubeClient();
-                await youtubeClient.Videos.Streams.DownloadAsync(media.streams, media.path, null, cts);
+
+                Progress<double> progressHandler = null;
+                if(media == largestMedium)
+                {
+                    await Dispatcher.BeginInvoke(() =>
+                    {
+                        taskbar.SetProgressState(TaskbarProgressBarState.Normal);
+                        progressHandler = new Progress<double>(p => RefreshGuiCurrentDownload(p));
+                    });
+                }
+                await youtubeClient.Videos.Streams.DownloadAsync(media.streams, media.path, progressHandler, cts);
             }
             catch (OperationCanceledException)
             {
@@ -308,87 +321,6 @@ namespace YoutubeDownloader
         }
 
         #endregion
-
-
-        //private async Task WriteFileToDrive((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, Stream stream, bool refreshGui, CancellationToken cts)
-        //{
-        //    var client = new HttpClient();
-
-        //    long? totalByte;
-        //    using (var request = new HttpRequestMessage(HttpMethod.Head, media.Item1.Uri))
-        //    {
-        //        totalByte = await Task.Run(() => client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts).Result.Content.Headers.ContentLength);
-        //    }
-        //     */
-        //    Stream stream1 = null;
-        //    AwaitStreamAgain:
-        //    try
-        //    {
-        //        stream1 = await client.GetStreamAsync(media.Item1.Uri, cts);
-        //    }
-        //    catch (HttpRequestException)
-        //    {
-        //        await Task.Delay(3000, cts);
-        //        goto AwaitStreamAgain;
-        //    }
-
-        //    using Stream input = stream1;
-        //    byte[] buffer = new byte[16 * 1024];
-        //    int read;
-        //    int totalRead = 0;
-        //    int lastRead = 0;
-
-
-        //    while ((read = await input.ReadAsync(buffer, cts)) > 0)
-        //    {
-        //        try
-        //        {
-        //            cts.ThrowIfCancellationRequested();
-
-        //            await stream.WriteAsync(buffer.AsMemory(0, read), cts);
-        //            lastRead = totalRead;
-        //            totalRead += read;
-
-
-        //            if(refreshGui)
-        //            {
-        //                RefreshGuiCurrentDownload(totalByte, totalRead);
-        //            }
-        //            else
-        //            {
-        //                await Dispatcher.BeginInvoke(() =>
-        //                {
-        //                    // Refresh estimated remaining time and duration
-        //                    TimeSpan duration = sw.Elapsed;
-        //                    Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
-
-        //                    if (media == largestMedium)
-        //                    {
-        //                        // Refresh progress percenatge label
-        //                        double currentProgress = totalRead / (double)totalByte * 100;
-        //                        DownloadingIndicatorBar.Value = currentProgress;
-        //                        CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
-        //                        taskbar.SetProgressValue(totalRead, (int)totalByte);
-
-        //                        // Refresh estimated remaining time and duration
-        //                        double bytesLeft = ((double)totalByte - totalRead);
-        //                        TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
-        //                        EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
-        //                    }
-        //                });
-        //            }
-
-        //        }
-
-        //        catch (OperationCanceledException)
-        //        {
-        //            await DisposeAndCloseStream(stream);
-        //            throw;
-        //        }
-        //    }
-        //    await DisposeAndCloseStream(stream);
-        //}
-
 
         #region HelperMethods
 
@@ -414,7 +346,7 @@ namespace YoutubeDownloader
             if ((bool)Audio.IsChecked)
             {
                 // LINQ necessary because the default audio format is opus which is incompatible with mp3
-                mediaManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == Container.Mp4).GetWithHighestBitrate();
+                mediaManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
             }
 
             else
@@ -564,20 +496,16 @@ namespace YoutubeDownloader
         }
 
 
-        private void RefreshGuiCurrentDownload(long? totalByte, int totalRead)
+        private void RefreshGuiCurrentDownload(double p)
         {
-
-            // Refresh progress percenatge label
-            double currentProgress = totalRead / (double)totalByte * 100;
-            DownloadingIndicatorBar.Value = currentProgress;
-            CurrentDownloadProgressLabel.Text = $"{currentProgress:0.##}%";
-            taskbar.SetProgressValue(totalRead, (int)totalByte);
-
             // Refresh estimated remaining time and duration
+            DownloadingIndicatorBar.Value = p * 100;
+            taskbar.SetProgressValue((int)(p * 100), 100);
+            CurrentDownloadProgressLabel.Text = $"{p * 100:0.##}%";
             TimeSpan duration = sw.Elapsed;
             Duration.Text = $"Vergangene Zeit: {duration:h\\:mm\\:ss}";
-            double bytesLeft = ((double)totalByte - totalRead);
-            TimeSpan calced = duration.Multiply(bytesLeft) / totalRead;
+            double bytesLeft = (1.0 - p);
+            TimeSpan calced = duration.Multiply(bytesLeft) / p;
             EstimatedTime.Text = $"Verbleibende Zeit: {calced:h\\:mm\\:ss}";
         }
 

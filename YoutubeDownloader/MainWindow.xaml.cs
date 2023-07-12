@@ -112,7 +112,7 @@ namespace YoutubeDownloader
             CurrentDownload.Visibility = Visibility.Visible;
 
             List<(IStreamInfo vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
-
+            vidsWithPathsAndLinks =vidsWithPathsAndLinks.OrderBy(video => video.vids.Size).ToList();
 
             // Initialize variables for progress bar
             uint downloadedVideos = 0;

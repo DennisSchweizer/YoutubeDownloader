@@ -472,9 +472,9 @@ namespace YoutubeDownloader
         private async Task<List<(IStreamInfo, YoutubeExplode.Videos.Video)>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
         {
             List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideosToBeLoaded = new List<(IStreamInfo, YoutubeExplode.Videos.Video)>();
-            foreach (string video in youTubeLinks)
+            foreach(string video in youTubeLinks)
             {
-                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = new ();
+                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = new();
                 
                 if (!video.Contains("playlist"))
                 {

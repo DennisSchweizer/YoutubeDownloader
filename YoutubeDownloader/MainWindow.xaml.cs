@@ -15,6 +15,8 @@ using System.Collections.Concurrent;
 using System.Windows.Threading;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
+using YoutubeExplode.Playlists;
+using YoutubeExplode.Common;
 
 namespace YoutubeDownloader
 {
@@ -187,7 +189,6 @@ namespace YoutubeDownloader
 
                 if (cancelCurrentDownload || cancelAllDownloads)
                 {
-
                     throw new OperationCanceledException();
                 }
 
@@ -479,16 +480,40 @@ namespace YoutubeDownloader
             List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideosToBeLoaded = new List<(IStreamInfo, YoutubeExplode.Videos.Video)>();
             foreach (string video in youTubeLinks)
             {
-                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
-
-                // youTubeVideo can become null if an age restricted video is in the download list or an broken link
-                if(youTubeVideo.Item1 != null && youTubeVideo.Item2 != null)
+                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = new ();
+                
+                if (!video.Contains("playlist"))
                 {
-                    youTubeVideosToBeLoaded.Add(youTubeVideo);
+                    youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
+                    if (youTubeVideo.Item1 != null && youTubeVideo.Item2 != null)
+                    {
+                        youTubeVideosToBeLoaded.Add(youTubeVideo);
+                    }
+                    else
+                    {
+                        invalidYouTubeLinks.Add(video);
+                    }
                 }
-                else
+                else // at least one playlist is in the textbox
                 {
-                    invalidYouTubeLinks.Add(video);
+                    List<(IStreamInfo, YoutubeExplode.Videos.Video)> videoPlayList = new();
+                    var youtubeClient = new YoutubeClient();
+                    var videos = await youtubeClient.Playlists.GetVideosAsync(video);
+                    foreach(PlaylistVideo playlistVideo in videos)
+                    {
+                        youTubeVideo = await GetMediaInformation(playlistVideo.Url, cancellationToken.Token);
+                        if (youTubeVideo.Item1 != null && youTubeVideo.Item2 != null)
+                        {
+                            videoPlayList.Add(youTubeVideo);
+                        }
+                        else
+                        {
+                            invalidYouTubeLinks.Add(playlistVideo.Url);
+                        }
+
+                        
+                    }
+                    youTubeVideosToBeLoaded.AddRange(videoPlayList);
                 }
             }
 
@@ -511,7 +536,7 @@ namespace YoutubeDownloader
 
         private static List<string> FilterForYoutubeLinks(string textToBeFiltered)
         {
-            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts)\S*");
+            Regex youtubePattern = new Regex(@"https?://www\.youtube\.com/(watch|shorts|playlist)\S*");
             MatchCollection matches = youtubePattern.Matches(textToBeFiltered);
 
             //Convert MatchCollection to Hashset (for filtering duplicates) then convert it back to a list 

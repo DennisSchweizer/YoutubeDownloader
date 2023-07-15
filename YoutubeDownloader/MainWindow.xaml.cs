@@ -179,13 +179,7 @@ namespace YoutubeDownloader
                 CurrentDownload.Text += $"\nDateiname: {mediaToBeLoaded.path.Split('\\').Last()}";
                 sw.Start();
 
-                await Task.WhenAny(DownloadVideo(mediaToBeLoaded, cts), Task.Run(() =>
-                {
-                    while (!cancelCurrentDownload && !cancelAllDownloads)
-                    {
-                        //nop -> this loop is finished when the Cancel Button is pressed
-                    }
-                }, cts));
+                await DownloadVideo(mediaToBeLoaded, cts);
 
                 if (cancelCurrentDownload || cancelAllDownloads)
                 {

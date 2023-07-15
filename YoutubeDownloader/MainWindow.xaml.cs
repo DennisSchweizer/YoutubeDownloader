@@ -17,6 +17,7 @@ using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Common;
+using YoutubeExplode.Converter;
 
 namespace YoutubeDownloader
 {
@@ -41,7 +42,7 @@ namespace YoutubeDownloader
         readonly List<string> invalidYouTubeLinks = new List<string>();
 
         // For estimating remaining time with parallel downloads 
-        (IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) largestMedium;
+        (IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) largestMedium;
 
 
         #endregion
@@ -113,15 +114,15 @@ namespace YoutubeDownloader
             DownloadList.Content = "Download läuft...";
             CurrentDownload.Visibility = Visibility.Visible;
 
-            List<(IStreamInfo vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
-            vidsWithPathsAndLinks =vidsWithPathsAndLinks.OrderBy(video => video.vids.Size).ToList();
+            List<(IStreamInfo[] vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            vidsWithPathsAndLinks = vidsWithPathsAndLinks.OrderBy(video => video.vids[0].Size).ToList();
 
             // Initialize variables for progress bar
             uint downloadedVideos = 0;
             ProgressIndicator.Text = $"Gesamtfortschritt: {downloadedVideos} / {vidsWithPathsAndLinks.Count} Dateien";
 
 
-            foreach ((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video in vidsWithPathsAndLinks)
+            foreach ((IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) video in vidsWithPathsAndLinks)
             {
                 sw.Reset();
                 CurrentDownload.Text = "Aktueller Download: ";
@@ -130,6 +131,8 @@ namespace YoutubeDownloader
                 try
                 {
                     await DownloadYoutubeVideoAsync(video, cancellationToken.Token);
+
+                    
                 } 
 
                 catch (OperationCanceledException)
@@ -172,7 +175,7 @@ namespace YoutubeDownloader
             FinalizeDownloads();
         }
 
-        private async Task DownloadYoutubeVideoAsync((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) mediaToBeLoaded, CancellationToken cts)
+        private async Task DownloadYoutubeVideoAsync((IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) mediaToBeLoaded, CancellationToken cts)
         {   
             try
             {
@@ -213,7 +216,7 @@ namespace YoutubeDownloader
             }
         }
 
-        private async Task DownloadVideo((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) vid, CancellationToken cts)
+        private async Task DownloadVideo((IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) vid, CancellationToken cts)
         {
             sw.Start();
             var youtube = new YoutubeClient();
@@ -224,7 +227,15 @@ namespace YoutubeDownloader
                 progressHandler = new Progress<double>(p => RefreshGuiCurrentDownload(p));
             });
 
-            await youtube.Videos.Streams.DownloadAsync(vid.streams, vid.path, progressHandler, cts);
+            if (vid.streams[1] != null)
+            { 
+                await youtube.Videos.DownloadAsync(vid.streams, new ConversionRequestBuilder(vid.path).Build(), progressHandler, cts); 
+            }
+            else
+            {
+                await youtube.Videos.Streams.DownloadAsync(vid.streams[0], vid.path, progressHandler, cts);
+            }
+            
 
         }
 
@@ -239,7 +250,7 @@ namespace YoutubeDownloader
             // Single download cannot be cancelled if download parallel is started
             CancelOperation.IsEnabled = false;
 
-            List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
 
             // no valid Youtube video detected
             if(vidsWithPathsAndLinks.Count == 0)
@@ -248,10 +259,10 @@ namespace YoutubeDownloader
                 return;
             }
 
-            ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> concurrentVids = new ConcurrentBag<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)>(vidsWithPathsAndLinks);
+            ConcurrentBag<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> concurrentVids = new ConcurrentBag<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)>(vidsWithPathsAndLinks);
 
             // used in order to get largest donwload and use it as estimation for whole download time
-            largestMedium = concurrentVids.MaxBy(medium => medium.streams.Size);
+            largestMedium = concurrentVids.MaxBy(medium => medium.streams[0].Size);
 
             // Initialize variables for progress bars and time labels
             uint downloadedVideos = 0;
@@ -292,7 +303,7 @@ namespace YoutubeDownloader
             FinalizeDownloads();
         }
 
-        private async Task DownloadVideosParallel((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
+        private async Task DownloadVideosParallel((IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) media, CancellationToken cts)
         {
             try
             {
@@ -307,7 +318,16 @@ namespace YoutubeDownloader
                         progressHandler = new Progress<double>(p => RefreshGuiCurrentDownload(p));
                     });
                 }
-                await youtubeClient.Videos.Streams.DownloadAsync(media.streams, media.path, progressHandler, cts);
+
+                if (media.streams[1] != null)
+                {
+                    await youtubeClient.Videos.DownloadAsync(media.streams, new ConversionRequestBuilder(media.path).Build(), progressHandler, cts);
+                }
+                else
+                {
+                    await youtubeClient.Videos.Streams.DownloadAsync(media.streams[0], media.path, progressHandler, cts);
+                }
+                
             }
             catch (OperationCanceledException)
             {
@@ -319,7 +339,7 @@ namespace YoutubeDownloader
 
         #region HelperMethods
 
-        private async Task<(IStreamInfo, YoutubeExplode.Videos.Video)> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
+        private async Task<(IStreamInfo[], YoutubeExplode.Videos.Video)> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
         {
             var youtube = new YoutubeClient();
             StreamManifest allStreamInfos;
@@ -336,39 +356,45 @@ namespace YoutubeDownloader
                 goto TryAgain;
             }
 
-            IStreamInfo mediaManifest;
+            IStreamInfo audioManifest;
+            IStreamInfo videoManifest;
+            IStreamInfo[] streamInfos = new IStreamInfo[2];
             // Decide whether audio or video file is loaded.
             if ((bool)Audio.IsChecked)
             {
                 // LINQ necessary because the default audio format is opus which is incompatible with mp3
-                mediaManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
+                audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
+                streamInfos[0] = audioManifest;
             }
 
             else
             {
-                mediaManifest = allStreamInfos.GetMuxedStreams().GetWithHighestVideoQuality();
+                audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
+                videoManifest = allStreamInfos.GetVideoOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestVideoQuality();
+                streamInfos[0] = audioManifest;
+                streamInfos[1] = videoManifest;
             }
 
-            return (mediaManifest, videoData);
+            return (streamInfos, videoData);
         }
 
-        private async Task<List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)>> GenerateListOfDownloads()
+        private async Task<List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)>> GenerateListOfDownloads()
         {
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
 
 
-            List<(IStreamInfo, YoutubeExplode.Videos.Video)> allMediaData = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
+            List<(IStreamInfo[], YoutubeExplode.Videos.Video)> allMediaData = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
             List<string> paths = GenerateFullFileNameList(allMediaData);
 
 
             videosToBeDownloaded= videosToBeDownloaded.Where(link => !invalidYouTubeLinks.Contains(link)).ToList();
 
 
-            List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = new List<(IStreamInfo, YoutubeExplode.Videos.Video, string)>();
+            List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = new List<(IStreamInfo[], YoutubeExplode.Videos.Video, string)>();
             
             for(int i = 0; i < allMediaData.Count; i++) { 
             
-                (IStreamInfo, YoutubeExplode.Videos.Video, string) tripel = (allMediaData[i].Item1, allMediaData[i].Item2, paths[i]);
+                (IStreamInfo[], YoutubeExplode.Videos.Video, string) tripel = (allMediaData[i].Item1, allMediaData[i].Item2, paths[i]);
                 vidsWithPathsAndLinks.Add(tripel);
             }
 
@@ -377,7 +403,7 @@ namespace YoutubeDownloader
         }
 
 
-        private async Task HandleCanceledDownload((IStreamInfo streams, YoutubeExplode.Videos.Video video, string path) video)
+        private async Task HandleCanceledDownload((IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path) video)
         {
             // Remove unnecessary data from memory
             GC.Collect();
@@ -415,7 +441,7 @@ namespace YoutubeDownloader
         }
 
 
-        private List<string> GenerateFullFileNameList(List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideos)
+        private List<string> GenerateFullFileNameList(List<(IStreamInfo[], YoutubeExplode.Videos.Video)> youTubeVideos)
         {
             List<string> fullFilePaths = new List<string>();
             foreach (var video in youTubeVideos)
@@ -425,7 +451,7 @@ namespace YoutubeDownloader
             return fullFilePaths;
         }
 
-        private List<int> CheckForAlreadyLoadedFile(List<(IStreamInfo streams, YoutubeExplode.Videos.Video video, string path)> videosWithPaths)
+        private List<int> CheckForAlreadyLoadedFile(List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> videosWithPaths)
         {
             List<int> indicesToBeDownloaded = new List<int>();
             for (int i = 0; i < videosWithPaths.Count; i++)
@@ -469,12 +495,12 @@ namespace YoutubeDownloader
             }
         }
 
-        private async Task<List<(IStreamInfo, YoutubeExplode.Videos.Video)>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
+        private async Task<List<(IStreamInfo[], YoutubeExplode.Videos.Video)>> YouTubeVideosToBeLoaded(List<string> youTubeLinks)
         {
-            List<(IStreamInfo, YoutubeExplode.Videos.Video)> youTubeVideosToBeLoaded = new List<(IStreamInfo, YoutubeExplode.Videos.Video)>();
+            List<(IStreamInfo[], YoutubeExplode.Videos.Video)> youTubeVideosToBeLoaded = new List<(IStreamInfo[], YoutubeExplode.Videos.Video)>();
             foreach(string video in youTubeLinks)
             {
-                (IStreamInfo, YoutubeExplode.Videos.Video) youTubeVideo = new();
+                (IStreamInfo[], YoutubeExplode.Videos.Video) youTubeVideo = new();
                 
                 if (!video.Contains("playlist"))
                 {
@@ -490,7 +516,7 @@ namespace YoutubeDownloader
                 }
                 else // at least one playlist is in the textbox
                 {
-                    List<(IStreamInfo, YoutubeExplode.Videos.Video)> videoPlayList = new();
+                    List<(IStreamInfo[], YoutubeExplode.Videos.Video)> videoPlayList = new();
                     var youtubeClient = new YoutubeClient();
                     var videos = await youtubeClient.Playlists.GetVideosAsync(video);
                     foreach(PlaylistVideo playlistVideo in videos)

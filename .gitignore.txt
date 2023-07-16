@@ -1,5 +1,6 @@
-/YoutubeDownloader/bin/
-/YoutubeDownloader/obj/
+YoutubeDownloader/bin/
+YoutubeDownloader/obj/
 /YoutubeDownloader/packages.config
-/.vs/
+YoutubeDownloader/ffmpeg.exe
+.vs/
 /packages/

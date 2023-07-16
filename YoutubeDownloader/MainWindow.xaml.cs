@@ -19,6 +19,7 @@ using YoutubeExplode.Playlists;
 using YoutubeExplode.Common;
 using YoutubeExplode.Converter;
 
+
 namespace YoutubeDownloader
 {
 
@@ -226,17 +227,23 @@ namespace YoutubeDownloader
                 taskbar.SetProgressState(TaskbarProgressBarState.Normal);
                 progressHandler = new Progress<double>(p => RefreshGuiCurrentDownload(p));
             });
-
+           
             if (vid.streams[1] != null)
             { 
                 await youtube.Videos.DownloadAsync(vid.streams, new ConversionRequestBuilder(vid.path).Build(), progressHandler, cts); 
             }
-            else
+            else // Video with separate audio stream
             {
-                await youtube.Videos.Streams.DownloadAsync(vid.streams[0], vid.path, progressHandler, cts);
+                if ((bool)Audio.IsChecked)
+                {
+                    await youtube.Videos.DownloadAsync(vid.video.Id, new ConversionRequestBuilder(vid.path).SetContainer(Container.Mp3).SetPreset(ConversionPreset.Medium).Build(), progressHandler, cts);
+                }
+                else
+                {
+                    await youtube.Videos.Streams.DownloadAsync(vid.streams[0], vid.path, progressHandler, cts);
+                }
+                
             }
-            
-
         }
 
         #endregion
@@ -325,7 +332,14 @@ namespace YoutubeDownloader
                 }
                 else
                 {
-                    await youtubeClient.Videos.Streams.DownloadAsync(media.streams[0], media.path, progressHandler, cts);
+                    if ((bool)Audio.IsChecked)
+                    {
+                        await youtubeClient.Videos.DownloadAsync(media.video.Id, new ConversionRequestBuilder(media.path).SetContainer(Container.Mp3).SetPreset(ConversionPreset.Medium).Build(), progressHandler, cts);
+                    }
+                    else
+                    {
+                        await youtubeClient.Videos.Streams.DownloadAsync(media.streams[0], media.path, progressHandler, cts);
+                    }
                 }
                 
             }
@@ -363,7 +377,7 @@ namespace YoutubeDownloader
             if ((bool)Audio.IsChecked)
             {
                 // LINQ necessary because the default audio format is opus which is incompatible with mp3
-                audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
+                audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.WebM).GetWithHighestBitrate();
                 streamInfos[0] = audioManifest;
             }
 

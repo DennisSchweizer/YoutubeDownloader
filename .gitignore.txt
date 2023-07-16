@@ -2,5 +2,5 @@ YoutubeDownloader/bin/
 YoutubeDownloader/obj/
 /YoutubeDownloader/packages.config
 YoutubeDownloader/ffmpeg.exe
-.vs/
+.vs
 /packages/

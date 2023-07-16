@@ -11,6 +11,12 @@
     <ApplicationIcon>YoutubeLoader.ico.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="ffmpeg.exe" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ffmpeg.exe">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
     <Resource Include="YoutubeLoader.ico.ico" />
   </ItemGroup>
   <ItemGroup>

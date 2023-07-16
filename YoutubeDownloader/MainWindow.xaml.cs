@@ -369,10 +369,26 @@ namespace YoutubeDownloader
 
             else
             {
-                audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
-                videoManifest = allStreamInfos.GetVideoOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestVideoQuality();
-                streamInfos[0] = audioManifest;
-                streamInfos[1] = videoManifest;
+                bool IsPathToFfmpegAvailable = Environment.ExpandEnvironmentVariables("%Path%").Contains("ffmpeg");
+                if ((bool)FastVideoDownloadCheckbox.IsChecked)
+                {
+                    if (!IsPathToFfmpegAvailable)
+                    {
+                        System.Windows.Forms.MessageBox.Show("ffmpeg ist nicht installiert, deshalb wird das Video in Standardqualität geladen. Überprüfen Sie, ob ffmpeg.exe in einem Ordner der Umgebungsvariable Path liegt.", "ffmpeg nicht verfügbar", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        streamInfos[0] = allStreamInfos.GetMuxedStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestVideoQuality();
+                    }
+                    else
+                    {
+                        audioManifest = allStreamInfos.GetAudioOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestBitrate();
+                        videoManifest = allStreamInfos.GetVideoOnlyStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestVideoQuality();
+                        streamInfos[0] = audioManifest;
+                        streamInfos[1] = videoManifest;
+                    }
+                }
+                else
+                {
+                    streamInfos[0] = allStreamInfos.GetMuxedStreams().Where(format => format.Container == YoutubeExplode.Videos.Streams.Container.Mp4).GetWithHighestVideoQuality();
+                }
             }
 
             return (streamInfos, videoData);

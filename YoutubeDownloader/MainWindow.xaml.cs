@@ -22,7 +22,7 @@ using YoutubeExplode.Converter;
 
 namespace YoutubeDownloader
 {
-
+#pragma warning disable CA1416 // Plattformkompatibilität überprüfen
     public partial class MainWindow : Window
     {
         public MainWindow()
@@ -36,7 +36,9 @@ namespace YoutubeDownloader
         CancellationTokenSource cancellationToken = new CancellationTokenSource();
         bool cancelCurrentDownload = false;
         bool cancelAllDownloads = false;
+
         readonly TaskbarManager taskbar = TaskbarManager.Instance;
+
         readonly Stopwatch sw = new Stopwatch();
 
         // If youtube videos cannot be accessed they need to be removed otherwise wrong links for a download may be shown

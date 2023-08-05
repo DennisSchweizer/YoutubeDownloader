@@ -1,12 +1,12 @@
 This executable loads either videos or music from a provided link to a Youtube video. It uses the repos [YoutubeExplode by Tyrrrz](https://github.com/Tyrrrz/YoutubeExplode)) and wraps its functionalities in a GUI. 
 
 ToDos:
-- [] implement pause button
 - [] refactor and try to merge functionalitites of parallel and sequential download
 - [] improve controls -> scaling windows
 - [] split GUI functions from basic functions
-- [] try to merge best audio file with best video file
 - [] improve progress evaluation if age restricted video is downloaded because it is much slower than larger unrestricted downloads
+- [] implement update mechanism 
+- [] get media tags especially for music
 
 Done:
 - [x] make download asynchronuous
@@ -31,3 +31,4 @@ Done:
 - [x] create backup in temp if download did already exist and if it will be overwritten
 - [x] handle exceptions which occur randomly if download is started
 - [x] add age verification fix -> fixed by integrating YoutubeExplode
+- [x] try to merge best audio file with best video file

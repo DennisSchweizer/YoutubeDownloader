@@ -334,7 +334,9 @@ namespace YoutubeDownloader
                 }
                 else
                 {
-                    if ((bool)Audio.IsChecked)
+                    bool audioIsChecked = true;
+                    await Dispatcher.BeginInvoke(() => audioIsChecked = (bool)Audio.IsChecked);
+                    if (audioIsChecked)
                     {
                         await youtubeClient.Videos.DownloadAsync(media.video.Id, new ConversionRequestBuilder(media.path).SetContainer(Container.Mp3).SetPreset(ConversionPreset.Medium).Build(), progressHandler, cts);
                     }

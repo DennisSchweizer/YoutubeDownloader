@@ -181,12 +181,5 @@
             Minimum="-1"
             ValueChanged="MaxParallelDownloads_ValueChanged"
             Value="-1" />
-        <CheckBox
-            Name="FastVideoDownloadCheckbox"
-            Margin="10,304,0,0"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Content="Videos immer in bester Qualität herunterladen (langsamer)"
-            IsChecked="False" />
     </Grid>
 </Window>

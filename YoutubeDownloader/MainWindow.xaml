@@ -72,6 +72,7 @@
             ClipToBounds="True"
             HorizontalScrollBarVisibility="Auto"
             MouseDoubleClick="OnDoubleClick"
+            GotFocus="VideoList_GotFocus"
             Text="Links zu den Videos hier in je eine Zeile einfügen"
             TextWrapping="NoWrap"
             VerticalScrollBarVisibility="Visible" />

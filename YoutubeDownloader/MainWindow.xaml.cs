@@ -641,5 +641,14 @@ namespace YoutubeDownloader
             taskbar.SetProgressState(TaskbarProgressBarState.NoProgress);
         }
         #endregion
+
+        private void VideoList_GotFocus(object sender, RoutedEventArgs e)
+        {
+            VideoList.Foreground = Brushes.Black;
+            if (VideoList.Text.Equals("Links zu den Videos hier in je eine Zeile einfügen"))
+            {
+                VideoList.Text = string.Empty;
+            }
+        }
     }
 }

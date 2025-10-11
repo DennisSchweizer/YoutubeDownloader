@@ -361,6 +361,7 @@ namespace YoutubeDownloader
         {
             var youtube = new YoutubeClient();
             StreamManifest allStreamInfos;
+
             YoutubeExplode.Videos.Video videoData = await youtube.Videos.GetAsync(mediaToBeLoaded, cts);
 
         TryAgain: 

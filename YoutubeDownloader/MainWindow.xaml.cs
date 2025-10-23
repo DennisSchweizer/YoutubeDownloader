@@ -116,8 +116,15 @@ namespace YoutubeDownloader
             InitializeAppForDownloading();
             DownloadList.Content = "Download läuft...";
             CurrentDownload.Visibility = Visibility.Visible;
-
-            List<(IStreamInfo[] vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            List<(IStreamInfo[] vids, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks;
+            try { 
+                vidsWithPathsAndLinks = await GenerateListOfDownloads(); 
+            }
+            catch (Exception)
+            {
+                FinalizeDownloads();
+                return;
+            }
             vidsWithPathsAndLinks = vidsWithPathsAndLinks.OrderBy(video => video.vids[0].Size).ToList();
 
             // Initialize variables for progress bar
@@ -258,8 +265,17 @@ namespace YoutubeDownloader
 
             // Single download cannot be cancelled if download parallel is started
             CancelOperation.IsEnabled = false;
-
-            List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks;
+            try
+            {
+                vidsWithPathsAndLinks = await GenerateListOfDownloads();
+            }
+            catch
+            {
+                FinalizeDownloads();
+                return;
+            }
+            
 
             // no valid Youtube video detected
             if(vidsWithPathsAndLinks.Count == 0)
@@ -360,20 +376,30 @@ namespace YoutubeDownloader
         private async Task<(IStreamInfo[], YoutubeExplode.Videos.Video)> GetMediaInformation(string mediaToBeLoaded, CancellationToken cts)
         {
             var youtube = new YoutubeClient();
-            StreamManifest allStreamInfos;
+            StreamManifest allStreamInfos = null;
 
             YoutubeExplode.Videos.Video videoData = await youtube.Videos.GetAsync(mediaToBeLoaded, cts);
 
-        TryAgain: 
-            try
+            int retryCounter = 0;
+            bool gotStreamInfos = false;
+            while (retryCounter < 4  || gotStreamInfos)
             {
-                allStreamInfos = await youtube.Videos.Streams.GetManifestAsync(mediaToBeLoaded, cts);
+                try
+                {
+                    allStreamInfos = await youtube.Videos.Streams.GetManifestAsync(mediaToBeLoaded, cts);
+                    gotStreamInfos = true;
+                }
+                catch (Exception ex)
+                {
+                    retryCounter++;
+                    if (retryCounter == 4)
+                    {
+                        System.Windows.MessageBox.Show($"Die Streaminformationen für das Video\n {videoData.Title}\n konnten nicht abgerufen werden.\n\nFehlermeldung: {ex.Message}\n\n {ex.StackTrace}", "Fehler beim Abrufen der Streaminformationen", MessageBoxButton.OK, MessageBoxImage.Error);
+                        throw; 
+                    }
+                }
             }
-            catch(HttpRequestException)
-            {
-                await Task.Delay(3000, CancellationToken.None);
-                goto TryAgain;
-            }
+
 
             IStreamInfo audioManifest;
             IStreamInfo videoManifest;
@@ -408,13 +434,20 @@ namespace YoutubeDownloader
         private async Task<List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)>> GenerateListOfDownloads()
         {
             List<string> videosToBeDownloaded = FilterForYoutubeLinks(VideoList.Text);
+            List<(IStreamInfo[], YoutubeExplode.Videos.Video)> allMediaData;
+            try
+            {
+                allMediaData = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
+                
+            }
+            catch (Exception)
+            {
+                throw;
+            }
 
-
-            List<(IStreamInfo[], YoutubeExplode.Videos.Video)> allMediaData = await YouTubeVideosToBeLoaded(videosToBeDownloaded);
             List<string> paths = GenerateFullFileNameList(allMediaData);
 
-
-            videosToBeDownloaded= videosToBeDownloaded.Where(link => !invalidYouTubeLinks.Contains(link)).ToList();
+            videosToBeDownloaded = videosToBeDownloaded.Where(link => !invalidYouTubeLinks.Contains(link)).ToList();
 
 
             List<(IStreamInfo[] streams, YoutubeExplode.Videos.Video video, string path)> vidsWithPathsAndLinks = new List<(IStreamInfo[], YoutubeExplode.Videos.Video, string)>();
@@ -531,7 +564,15 @@ namespace YoutubeDownloader
                 
                 if (!video.Contains("playlist"))
                 {
-                    youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
+                    try
+                    {
+                        youTubeVideo = await GetMediaInformation(video, cancellationToken.Token);
+                    }
+                    catch (Exception)
+                    {
+                        throw;
+                    }
+
                     if (youTubeVideo.Item1 != null && youTubeVideo.Item2 != null)
                     {
                         youTubeVideosToBeLoaded.Add(youTubeVideo);

@@ -4,3 +4,5 @@ YoutubeDownloader/obj/
 YoutubeDownloader/ffmpeg.exe
 .vs
 /packages/
+UpdateChecker/bin/
+UpdateChecker/obj/

@@ -18,6 +18,7 @@ using YoutubeExplode.Videos.Streams;
 using YoutubeExplode.Playlists;
 using YoutubeExplode.Common;
 using YoutubeExplode.Converter;
+using static UpdateChecker.UpdateChecker;
 
 
 namespace YoutubeDownloader
@@ -29,6 +30,27 @@ namespace YoutubeDownloader
         {
             InitializeComponent();
             DownloadDirectory.Text = Path.Combine(Environment.ExpandEnvironmentVariables("%USERPROFILE%"), "Downloads\\");
+            CheckForUpdates();
+
+        }
+
+        public static void CheckForUpdates()
+        {
+            string youtubeExplodeVersionOnline = GetLatestVersionFromNuGet(YouTubeExplodeAddress);
+            string youtubeExplodeInstalledVersion = GetCurrentVersion(YouTubeExplodeDllName);
+
+            string youtubeExplodeConverterVersionOnline = GetLatestVersionFromNuGet(YouTubeExplodeConverterAddress);
+            string youtubeExplodeConverterInstalledVersion = GetCurrentVersion(YouTubeExplodeConverterDllName);
+
+            if (youtubeExplodeVersionOnline != youtubeExplodeInstalledVersion)
+            {
+                System.Windows.MessageBox.Show($"Eine neuere Version von YoutubeExplode ({youtubeExplodeVersionOnline}) ist verfügbar! Installierte Version: {youtubeExplodeInstalledVersion}\n");
+            }
+
+            if (youtubeExplodeConverterVersionOnline != youtubeExplodeConverterInstalledVersion)
+            {
+                System.Windows.MessageBox.Show($"Eine neuere Version von YoutubeExplode.Converter ({youtubeExplodeConverterVersionOnline}) ist verfügbar! Installierte Version: {youtubeExplodeConverterInstalledVersion}\n");
+            }
         }
 
         #region Properties / Global variables
@@ -382,7 +404,7 @@ namespace YoutubeDownloader
 
             int retryCounter = 0;
             bool gotStreamInfos = false;
-            while (retryCounter < 4  || gotStreamInfos)
+            while (retryCounter < 4  && !gotStreamInfos)
             {
                 try
                 {
@@ -392,7 +414,7 @@ namespace YoutubeDownloader
                 catch (Exception ex)
                 {
                     retryCounter++;
-                    if (retryCounter == 4)
+                    if (retryCounter >= 4)
                     {
                         System.Windows.MessageBox.Show($"Die Streaminformationen für das Video\n {videoData.Title}\n konnten nicht abgerufen werden.\n\nFehlermeldung: {ex.Message}\n\n {ex.StackTrace}", "Fehler beim Abrufen der Streaminformationen", MessageBoxButton.OK, MessageBoxImage.Error);
                         throw; 
